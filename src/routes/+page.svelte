@@ -177,7 +177,7 @@
     <div class="grid">
       {#each board as row, i}
         {#each row as cell, j}
-          <div
+          <button
             class="cell-wrapper"
             class:right-border={(j + 1) % 3 === 0 && j < 8}
             class:bottom-border={(i + 1) % 3 === 0 && i < 8}
@@ -186,7 +186,7 @@
             on:click={() => selectCell(i, j)}
           >
             <Cell value={cell.value} notes={cell.notes} {gamePhase} />
-          </div>
+          </button>
         {/each}
       {/each}
     </div>
@@ -271,6 +271,12 @@
     position: relative;
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
   }
 
   .cell-wrapper.highlighted {
