@@ -94,7 +94,7 @@
   }
 
   .cell-wrapper.selected {
-    background-color: #D8C2D8;
+    background-color: #E6E6FA;
   }
 
   .right-border {
