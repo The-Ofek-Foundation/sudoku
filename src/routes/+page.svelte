@@ -10,7 +10,7 @@
 
   let selectedCell: { row: number; col: number } | null = null;
 
-  const board: CellData[][] = Array(9).fill(null).map(() =>
+  let board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
       value: null,
       notes: new Set(Array.from({ length: 9 }, (_, i) => i + 1))
