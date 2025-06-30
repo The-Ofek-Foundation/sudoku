@@ -4,6 +4,7 @@
 
   type CellData = {
     value: number | null;
+    notes: Set<number>;
   };
 
   let selectedCell: { row: number; col: number } | null = null;
@@ -11,10 +12,12 @@
   const board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
       value: null,
+      notes: new Set(Array.from({ length: 9 }, (_, i) => i + 1))
     }))
   );
 
   board[0][0].value = 5;
+  board[0][0].notes.clear();
 
   function selectCell(row: number, col: number) {
     selectedCell = { row, col };
@@ -55,7 +58,7 @@
             class:highlighted={isHighlighted(i, j)}
             on:click={() => selectCell(i, j)}
           >
-            <Cell value={cell.value} />
+            <Cell value={cell.value} notes={cell.notes} />
           </div>
         {/each}
       {/each}
@@ -211,3 +214,4 @@
     color: #212529;
   }
 </style>
+
