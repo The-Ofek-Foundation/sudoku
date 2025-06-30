@@ -4,6 +4,9 @@
   import { onMount } from 'svelte';
   import sudoku from '$lib/sudoku/sudoku.js';
 
+  // Sudoku solver from https://github.com/einaregilsson/sudoku.js
+  // The library has been modified to be used as an ES module.
+
   type CellData = {
     value: number | null;
     notes: Set<number>;
@@ -67,37 +70,15 @@
 
   function startGame() {
     const boardStr = board.map(row => row.map(cell => cell.value || '.').join('')).join('');
+    
+    // Sudoku solver from https://github.com/einaregilsson/sudoku.js
+    // The library has been modified to be used as an ES module.
     const solution = sudoku.solve(boardStr);
 
     if (solution === false) {
       errorMessage = "This puzzle has no solution.";
     } else {
-      const solutions = [];
-      const currentBoard = board.map(row => row.map(cell => cell.value));
-
-      function solve() {
-        const emptyCell = findEmptyCell(currentBoard);
-        if (!emptyCell) {
-          solutions.push(currentBoard.map(row => row.slice()));
-          return;
-        }
-
-        const [row, col] = emptyCell;
-        for (let num = 1; num <= 9; num++) {
-          if (isValidMove(currentBoard, row, col, num)) {
-            currentBoard[row][col] = num;
-            solve();
-            currentBoard[row][col] = null;
-            if (solutions.length > 1) {
-              return;
-            }
-          }
-        }
-      }
-
-      solve();
-
-      if (solutions.length > 1) {
+      if (!sudoku.isUnique(boardStr)) {
         errorMessage = "This puzzle has multiple solutions.";
       } else {
         errorMessage = null;
