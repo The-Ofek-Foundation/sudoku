@@ -76,6 +76,7 @@
 
   function handleDelete() {
     if (selectedCell && gamePhase === 'configuring') {
+      const { row, col } = selectedCell;
       board[row][col].value = null;
       // Trigger reactivity
       board = board;
@@ -92,7 +93,32 @@
     if (solution === false) {
       errorMessage = "This puzzle has no solution.";
     } else {
-      if (!sudoku.isUnique(boardStr)) {
+      const solutions = [];
+      const currentBoard = board.map(row => row.map(cell => cell.value));
+
+      function solve() {
+        const emptyCell = findEmptyCell(currentBoard);
+        if (!emptyCell) {
+          solutions.push(currentBoard.map(row => row.slice()));
+          return;
+        }
+
+        const [row, col] = emptyCell;
+        for (let num = 1; num <= 9; num++) {
+          if (isValidMove(currentBoard, row, col, num)) {
+            currentBoard[row][col] = num;
+            solve();
+            currentBoard[row][col] = null;
+            if (solutions.length > 1) {
+              return;
+            }
+          }
+        }
+      }
+
+      solve();
+
+      if (solutions.length > 1) {
         errorMessage = "This puzzle has multiple solutions.";
       } else {
         errorMessage = null;
@@ -170,6 +196,15 @@
         handleInput(num);
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
         handleDelete();
+      } else if (event.key === 'p') {
+        const puzzle = '53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79';
+        for (let i = 0; i < 9; i++) {
+          for (let j = 0; j < 9; j++) {
+            const char = puzzle[i * 9 + j];
+            board[i][j].value = char === '.' ? null : parseInt(char);
+          }
+        }
+        board = board;
       }
     };
 
