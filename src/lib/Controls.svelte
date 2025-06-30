@@ -6,6 +6,14 @@
 
 	const dispatch = createEventDispatcher();
 
+	let isNoteMode = inputMode === 'note';
+
+	$: isNoteMode = inputMode === 'note';
+
+	function toggleNoteMode() {
+		inputMode = isNoteMode ? 'normal' : 'note';
+	}
+
 	function startGame() {
 		dispatch('startGame');
 	}
@@ -37,8 +45,8 @@
 				<input
 					type="checkbox"
 					id="note-mode"
-					bind:checked={inputMode === 'note'}
-					on:change={() => (inputMode = inputMode === 'note' ? 'normal' : 'note')}
+					bind:checked={isNoteMode}
+					on:change={toggleNoteMode}
 				/>
 				<label for="note-mode">Note Mode</label>
 			</div>
