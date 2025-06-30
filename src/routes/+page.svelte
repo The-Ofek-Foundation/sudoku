@@ -1,6 +1,7 @@
 <script lang="ts">
   import Cell from '$lib/Cell.svelte';
   import '../app.css';
+  import { onMount } from 'svelte';
 
   type CellData = {
     value: number | null;
@@ -43,6 +44,33 @@
       col < startCol + 3
     );
   }
+
+  function handleInput(num: number) {
+    if (selectedCell) {
+      const { row, col } = selectedCell;
+      if (board[row][col].value === null) {
+        board[row][col].value = num;
+        board[row][col].notes.clear();
+        // Trigger reactivity
+        board = board;
+      }
+    }
+  }
+
+  onMount(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const num = parseInt(event.key);
+      if (!isNaN(num) && num >= 1 && num <= 9) {
+        handleInput(num);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  });
 </script>
 
 <main>
@@ -88,7 +116,7 @@
 
     <div class="number-palette">
       {#each Array(9) as _, i}
-        <button class="number-button">{i + 1}</button>
+        <button class="number-button" on:click={() => handleInput(i + 1)}>{i + 1}</button>
       {/each}
     </div>
   </div>
@@ -195,7 +223,7 @@
   .number-palette {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
-    gap: 0.375rem; /* Reduced from 0.5rem */
+    gap: 0.375rem; /* Reduced from 1rem */
   }
 
   .number-button {
@@ -214,4 +242,5 @@
     color: #212529;
   }
 </style>
+
 
