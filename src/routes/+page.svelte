@@ -46,7 +46,7 @@
   function handleInput(num: number) {
     if (selectedCell) {
       const { row, col } = selectedCell;
-      if (board[row][col].value === null) {
+      if (gamePhase === 'configuring' || board[row][col].value === null) {
         board[row][col].value = num;
         // Trigger reactivity
         board = board;
