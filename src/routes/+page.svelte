@@ -17,6 +17,7 @@
   let gamePhase: 'configuring' | 'solving' = 'configuring';
   let inputMode: 'normal' | 'note' = 'normal';
   let errorMessage: string | null = null;
+  let history: CellData[][][] = [];
 
   let board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
@@ -57,9 +58,11 @@
       if (gamePhase === 'configuring') {
         board[row][col].value = num;
       } else if (inputMode === 'normal' && !board[row][col].isInitial) {
+        saveToHistory();
         board[row][col].value = num;
         board[row][col].notes.clear();
       } else if (inputMode === 'note' && !board[row][col].isInitial) {
+        saveToHistory();
         if (board[row][col].notes.has(num)) {
           board[row][col].notes.delete(num);
         } else {
@@ -73,7 +76,6 @@
 
   function handleDelete() {
     if (selectedCell && gamePhase === 'configuring') {
-      const { row, col } = selectedCell;
       board[row][col].value = null;
       // Trigger reactivity
       board = board;
@@ -104,7 +106,19 @@
             }
           }
         }
+        saveToHistory();
       }
+    }
+  }
+
+  function saveToHistory() {
+    history.push(JSON.parse(JSON.stringify(board)));
+  }
+
+  function undo() {
+    if (history.length > 1) {
+      history.pop();
+      board = history[history.length - 1];
     }
   }
 
@@ -207,7 +221,7 @@
         <button class="action-button" on:click={() => inputMode = 'note'}>
           <span>Note</span>
         </button>
-        <button class="action-button">
+        <button class="action-button" on:click={undo}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
