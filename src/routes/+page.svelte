@@ -10,6 +10,7 @@
 
   let selectedCell: { row: number; col: number } | null = null;
   let gamePhase: 'configuring' | 'solving' = 'configuring';
+  let errorMessage: string | null = null;
 
   let board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
@@ -54,15 +55,101 @@
     }
   }
 
+  function handleDelete() {
+    if (selectedCell && gamePhase === 'configuring') {
+      const { row, col } = selectedCell;
+      board[row][col].value = null;
+      // Trigger reactivity
+      board = board;
+    }
+  }
+
+  function solveSudoku(board: (number | null)[][]): (number | null)[][] | null {
+    // ... (Sudoku solver logic will be implemented here)
+    return null;
+  }
+
   function startGame() {
-    gamePhase = 'solving';
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        if (board[i][j].value === null) {
-          board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+    const solutions = [];
+    const currentBoard = board.map(row => row.map(cell => cell.value));
+
+    function solve() {
+      const emptyCell = findEmptyCell(currentBoard);
+      if (!emptyCell) {
+        solutions.push(currentBoard.map(row => row.slice()));
+        return;
+      }
+
+      const [row, col] = emptyCell;
+      for (let num = 1; num <= 9; num++) {
+        if (isValidMove(currentBoard, row, col, num)) {
+          currentBoard[row][col] = num;
+          solve();
+          currentBoard[row][col] = null;
+          if (solutions.length > 1) {
+            return;
+          }
         }
       }
     }
+
+    solve();
+
+    if (solutions.length === 0) {
+      errorMessage = "This puzzle has no solution.";
+    } else if (solutions.length > 1) {
+      errorMessage = "This puzzle has multiple solutions.";
+    } else {
+      errorMessage = null;
+      gamePhase = 'solving';
+      for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+          if (board[i][j].value === null) {
+            board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+          }
+        }
+      }
+    }
+  }
+
+  function findEmptyCell(board: (number | null)[][]): [number, number] | null {
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if (board[i][j] === null) {
+          return [i, j];
+        }
+      }
+    }
+    return null;
+  }
+
+  function isValidMove(board: (number | null)[][], row: number, col: number, num: number): boolean {
+    // Check row
+    for (let i = 0; i < 9; i++) {
+      if (board[row][i] === num) {
+        return false;
+      }
+    }
+
+    // Check column
+    for (let i = 0; i < 9; i++) {
+      if (board[i][col] === num) {
+        return false;
+      }
+    }
+
+    // Check 3x3 subgrid
+    const startRow = Math.floor(row / 3) * 3;
+    const startCol = Math.floor(col / 3) * 3;
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        if (board[startRow + i][startCol + j] === num) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   onMount(() => {
@@ -70,6 +157,8 @@
       const num = parseInt(event.key);
       if (!isNaN(num) && num >= 1 && num <= 9) {
         handleInput(num);
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        handleDelete();
       }
     };
 
@@ -101,11 +190,18 @@
     </div>
   </div>
 
+  {#if errorMessage}
+    <div class="error-message">{errorMessage}</div>
+  {/if}
+
   <div class="control-bar">
     <div class="actions-row">
       {#if gamePhase === 'configuring'}
         <button class="action-button" on:click={startGame}>
           <span>Start Game</span>
+        </button>
+        <button class="action-button" on:click={handleDelete}>
+          <span>Delete</span>
         </button>
       {:else}
         <button class="action-button">
@@ -254,6 +350,11 @@
   .number-button:hover {
     background-color: #ced4da;
     color: #212529;
+  }
+
+  .error-message {
+    color: red;
+    margin-top: 1rem;
   }
 </style>
 
