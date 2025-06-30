@@ -2,6 +2,7 @@
   import Cell from '$lib/Cell.svelte';
   import '../app.css';
   import { onMount } from 'svelte';
+  import sudoku from '$lib/sudoku/sudoku.js';
 
   type CellData = {
     value: number | null;
@@ -64,79 +65,48 @@
     }
   }
 
-  function solveSudoku(board: (number | null)[][]): (number | null)[][] | null {
-    // ... (Sudoku solver logic will be implemented here)
-    return null;
-  }
-
   function startGame() {
-    const solutions = [];
-    const currentBoard = board.map(row => row.map(cell => cell.value));
+    const boardStr = board.map(row => row.map(cell => cell.value || '.').join('')).join('');
+    const solution = sudoku.solve(boardStr);
 
-    function getPossibleValues(row: number, col: number) {
-      const values = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+    if (solution === false) {
+      errorMessage = "This puzzle has no solution.";
+    } else {
+      const solutions = [];
+      const currentBoard = board.map(row => row.map(cell => cell.value));
 
-      // Check row
-      for (let i = 0; i < 9; i++) {
-        if (currentBoard[row][i] !== null) {
-          values.delete(currentBoard[row][i]);
+      function solve() {
+        const emptyCell = findEmptyCell(currentBoard);
+        if (!emptyCell) {
+          solutions.push(currentBoard.map(row => row.slice()));
+          return;
         }
-      }
 
-      // Check column
-      for (let i = 0; i < 9; i++) {
-        if (currentBoard[i][col] !== null) {
-          values.delete(currentBoard[i][col]);
-        }
-      }
-
-      // Check 3x3 subgrid
-      const startRow = Math.floor(row / 3) * 3;
-      const startCol = Math.floor(col / 3) * 3;
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          if (currentBoard[startRow + i][startCol + j] !== null) {
-            values.delete(currentBoard[startRow + i][startCol + j]);
+        const [row, col] = emptyCell;
+        for (let num = 1; num <= 9; num++) {
+          if (isValidMove(currentBoard, row, col, num)) {
+            currentBoard[row][col] = num;
+            solve();
+            currentBoard[row][col] = null;
+            if (solutions.length > 1) {
+              return;
+            }
           }
         }
       }
 
-      return Array.from(values);
-    }
+      solve();
 
-    function solve() {
-      const emptyCell = findEmptyCell(currentBoard);
-      if (!emptyCell) {
-        solutions.push(currentBoard.map(row => row.slice()));
-        return;
-      }
-
-      const [row, col] = emptyCell;
-      const possibleValues = getPossibleValues(row, col);
-
-      for (const num of possibleValues) {
-        currentBoard[row][col] = num;
-        solve();
-        currentBoard[row][col] = null;
-        if (solutions.length > 1) {
-          return;
-        }
-      }
-    }
-
-    solve();
-
-    if (solutions.length === 0) {
-      errorMessage = "This puzzle has no solution.";
-    } else if (solutions.length > 1) {
-      errorMessage = "This puzzle has multiple solutions.";
-    } else {
-      errorMessage = null;
-      gamePhase = 'solving';
-      for (let i = 0; i < 9; i++) {
-        for (let j = 0; j < 9; j++) {
-          if (board[i][j].value === null) {
-            board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+      if (solutions.length > 1) {
+        errorMessage = "This puzzle has multiple solutions.";
+      } else {
+        errorMessage = null;
+        gamePhase = 'solving';
+        for (let i = 0; i < 9; i++) {
+          for (let j = 0; j < 9; j++) {
+            if (board[i][j].value === null) {
+              board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+            }
           }
         }
       }
@@ -182,6 +152,7 @@
 
     return true;
   }
+
 
   onMount(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
