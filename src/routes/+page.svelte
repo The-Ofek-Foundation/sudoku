@@ -107,7 +107,13 @@
 	function undo() {
 		if (history.length > 1) {
 			history.pop();
-			board = history[history.length - 1];
+			const lastBoard = history[history.length - 1];
+			board = lastBoard.map((row) =>
+				row.map((cell) => ({
+					...cell,
+					notes: new Set(cell.notes),
+				})),
+			);
 		}
 	}
 
