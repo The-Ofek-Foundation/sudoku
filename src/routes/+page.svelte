@@ -73,6 +73,37 @@
     const solutions = [];
     const currentBoard = board.map(row => row.map(cell => cell.value));
 
+    function getPossibleValues(row: number, col: number) {
+      const values = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+
+      // Check row
+      for (let i = 0; i < 9; i++) {
+        if (currentBoard[row][i] !== null) {
+          values.delete(currentBoard[row][i]);
+        }
+      }
+
+      // Check column
+      for (let i = 0; i < 9; i++) {
+        if (currentBoard[i][col] !== null) {
+          values.delete(currentBoard[i][col]);
+        }
+      }
+
+      // Check 3x3 subgrid
+      const startRow = Math.floor(row / 3) * 3;
+      const startCol = Math.floor(col / 3) * 3;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (currentBoard[startRow + i][startCol + j] !== null) {
+            values.delete(currentBoard[startRow + i][startCol + j]);
+          }
+        }
+      }
+
+      return Array.from(values);
+    }
+
     function solve() {
       const emptyCell = findEmptyCell(currentBoard);
       if (!emptyCell) {
@@ -81,14 +112,14 @@
       }
 
       const [row, col] = emptyCell;
-      for (let num = 1; num <= 9; num++) {
-        if (isValidMove(currentBoard, row, col, num)) {
-          currentBoard[row][col] = num;
-          solve();
-          currentBoard[row][col] = null;
-          if (solutions.length > 1) {
-            return;
-          }
+      const possibleValues = getPossibleValues(row, col);
+
+      for (const num of possibleValues) {
+        currentBoard[row][col] = num;
+        solve();
+        currentBoard[row][col] = null;
+        if (solutions.length > 1) {
+          return;
         }
       }
     }
