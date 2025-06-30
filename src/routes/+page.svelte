@@ -10,16 +10,19 @@
   type CellData = {
     value: number | null;
     notes: Set<number>;
+    isInitial: boolean;
   };
 
   let selectedCell: { row: number; col: number } | null = null;
   let gamePhase: 'configuring' | 'solving' = 'configuring';
+  let inputMode: 'normal' | 'note' = 'normal';
   let errorMessage: string | null = null;
 
   let board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
       value: null,
-      notes: new Set<number>()
+      notes: new Set<number>(),
+      isInitial: false
     }))
   );
 
@@ -51,11 +54,20 @@
   function handleInput(num: number) {
     if (selectedCell) {
       const { row, col } = selectedCell;
-      if (gamePhase === 'configuring' || board[row][col].value === null) {
+      if (gamePhase === 'configuring') {
         board[row][col].value = num;
-        // Trigger reactivity
-        board = board;
+      } else if (inputMode === 'normal' && !board[row][col].isInitial) {
+        board[row][col].value = num;
+        board[row][col].notes.clear();
+      } else if (inputMode === 'note' && !board[row][col].isInitial) {
+        if (board[row][col].notes.has(num)) {
+          board[row][col].notes.delete(num);
+        } else {
+          board[row][col].notes.add(num);
+        }
       }
+      // Trigger reactivity
+      board = board;
     }
   }
 
@@ -85,7 +97,9 @@
         gamePhase = 'solving';
         for (let i = 0; i < 9; i++) {
           for (let j = 0; j < 9; j++) {
-            if (board[i][j].value === null) {
+            if (board[i][j].value !== null) {
+              board[i][j].isInitial = true;
+            } else {
               board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
             }
           }
@@ -187,6 +201,12 @@
           <span>Delete</span>
         </button>
       {:else}
+        <button class="action-button" on:click={() => inputMode = 'normal'}>
+          <span>Normal</span>
+        </button>
+        <button class="action-button" on:click={() => inputMode = 'note'}>
+          <span>Note</span>
+        </button>
         <button class="action-button">
           <svg
             xmlns="http://www.w3.org/2000/svg"
