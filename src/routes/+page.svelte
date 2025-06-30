@@ -95,12 +95,19 @@
 	}
 
 	function saveToHistory() {
-		history.push(JSON.parse(JSON.stringify(board)));
+		const newBoard = board.map((row) =>
+			row.map((cell) => ({
+				...cell,
+				notes: new Set(cell.notes),
+			})),
+		);
+		history.push(newBoard);
 	}
 
 	function undo() {
-		if (history.length > 0) {
-			board = history.pop();
+		if (history.length > 1) {
+			history.pop();
+			board = history[history.length - 1];
 		}
 	}
 
