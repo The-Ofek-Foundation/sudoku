@@ -133,12 +133,12 @@
     transition: background-color 0.1s ease-in-out;
   }
 
-  .cell-wrapper.selected {
-    background-color: #d8d8e8;
-  }
-
   .cell-wrapper.highlighted {
     background-color: #e8e8f2;
+  }
+
+  .cell-wrapper.selected {
+    background-color: #d8d8e8;
   }
 
   .right-border {
