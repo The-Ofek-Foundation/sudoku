@@ -33,12 +33,15 @@
 				<span>Delete</span>
 			</button>
 		{:else}
-			<button class="action-button" on:click={() => (inputMode = 'normal')}>
-				<span>Normal</span>
-			</button>
-			<button class="action-button" on:click={() => (inputMode = 'note')}>
-				<span>Note</span>
-			</button>
+			<div class="toggle-switch">
+				<input
+					type="checkbox"
+					id="note-mode"
+					bind:checked={inputMode === 'note'}
+					on:change={() => (inputMode = inputMode === 'note' ? 'normal' : 'note')}
+				/>
+				<label for="note-mode">Note Mode</label>
+			</div>
 			<button class="action-button" on:click={undo}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -82,6 +85,7 @@
 	.actions-row {
 		display: flex;
 		justify-content: flex-start;
+		align-items: center;
 		gap: 0.75rem;
 		margin-bottom: 0.75rem; /* Reduced from 1rem */
 	}
@@ -129,5 +133,40 @@
 	.number-button:hover {
 		background-color: #ced4da;
 		color: #212529;
+	}
+	.toggle-switch {
+		display: flex;
+		align-items: center;
+	}
+	.toggle-switch input {
+		display: none;
+	}
+	.toggle-switch label {
+		display: block;
+		width: 40px;
+		height: 20px;
+		background-color: #ccc;
+		border-radius: 10px;
+		position: relative;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+	.toggle-switch label::after {
+		content: '';
+		display: block;
+		width: 16px;
+		height: 16px;
+		background-color: #fff;
+		border-radius: 50%;
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		transition: left 0.2s;
+	}
+	.toggle-switch input:checked + label {
+		background-color: #4caf50;
+	}
+	.toggle-switch input:checked + label::after {
+		left: 22px;
 	}
 </style>
