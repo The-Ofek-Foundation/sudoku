@@ -142,9 +142,8 @@
   }
 
   function undo() {
-    if (history.length > 1) {
-      history.pop();
-      board = history[history.length - 1];
+    if (history.length > 0) {
+      board = history.pop();
     }
   }
 
