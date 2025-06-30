@@ -216,12 +216,19 @@
 </main>
 
 <style>
+  :global(body, html) {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   main {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    min-height: 100vh;
+    height: 100vh;
     padding: 1rem;
     box-sizing: border-box;
   }
@@ -258,6 +265,7 @@
     font-family: inherit;
     font-size: inherit;
     color: inherit;
+    outline: none;
   }
 
   .cell-wrapper.highlighted {
