@@ -1,12 +1,13 @@
 <script lang="ts">
   export let value: number | null = null;
   export let notes: Set<number> = new Set();
+  export let gamePhase: 'configuring' | 'solving' = 'configuring';
 </script>
 
 <div class="cell">
   {#if value}
     <span class="value">{value}</span>
-  {:else}
+  {:else if gamePhase === 'solving'}
     <div class="notes-grid">
       {#each Array(9) as _, i}
         <div class="note-cell">

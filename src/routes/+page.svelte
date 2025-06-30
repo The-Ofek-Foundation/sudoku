@@ -9,16 +9,14 @@
   };
 
   let selectedCell: { row: number; col: number } | null = null;
+  let gamePhase: 'configuring' | 'solving' = 'configuring';
 
   let board: CellData[][] = Array(9).fill(null).map(() =>
     Array(9).fill(null).map(() => ({
       value: null,
-      notes: new Set(Array.from({ length: 9 }, (_, i) => i + 1))
+      notes: new Set<number>()
     }))
   );
-
-  board[0][0].value = 5;
-  board[0][0].notes.clear();
 
   function selectCell(row: number, col: number) {
     selectedCell = { row, col };
@@ -50,9 +48,19 @@
       const { row, col } = selectedCell;
       if (board[row][col].value === null) {
         board[row][col].value = num;
-        board[row][col].notes.clear();
         // Trigger reactivity
         board = board;
+      }
+    }
+  }
+
+  function startGame() {
+    gamePhase = 'solving';
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if (board[i][j].value === null) {
+          board[i][j].notes = new Set(Array.from({ length: 9 }, (_, i) => i + 1));
+        }
       }
     }
   }
@@ -86,7 +94,7 @@
             class:highlighted={isHighlighted(i, j)}
             on:click={() => selectCell(i, j)}
           >
-            <Cell value={cell.value} notes={cell.notes} />
+            <Cell value={cell.value} notes={cell.notes} {gamePhase} />
           </div>
         {/each}
       {/each}
@@ -95,23 +103,29 @@
 
   <div class="control-bar">
     <div class="actions-row">
-      <button class="action-button">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          ><polyline points="9 14 4 9 9 4"></polyline><path
-            d="M20 20v-7a4 4 0 0 0-4-4H4"
-          ></path></svg
-        >
-        <span>Undo</span>
-      </button>
+      {#if gamePhase === 'configuring'}
+        <button class="action-button" on:click={startGame}>
+          <span>Start Game</span>
+        </button>
+      {:else}
+        <button class="action-button">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><polyline points="9 14 4 9 9 4"></polyline><path
+              d="M20 20v-7a4 4 0 0 0-4-4H4"
+            ></path></svg
+          >
+          <span>Undo</span>
+        </button>
+      {/if}
     </div>
 
     <div class="number-palette">
