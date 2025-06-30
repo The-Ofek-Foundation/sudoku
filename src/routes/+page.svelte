@@ -134,11 +134,11 @@
   }
 
   .cell-wrapper.selected {
-    background-color: #e6e6fa;
+    background-color: #d8d8e8;
   }
 
   .cell-wrapper.highlighted {
-    background-color: #f0f0f0;
+    background-color: #e8e8f2;
   }
 
   .right-border {
