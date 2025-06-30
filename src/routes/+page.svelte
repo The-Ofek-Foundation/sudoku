@@ -105,15 +105,16 @@
 	}
 
 	function undo() {
-		if (history.length > 1) {
-			history.pop();
-			const lastBoard = history[history.length - 1];
-			board = lastBoard.map((row) =>
-				row.map((cell) => ({
-					...cell,
-					notes: new Set(cell.notes),
-				})),
-			);
+		if (history.length > 0) {
+			const lastBoard = history.pop();
+			if (lastBoard) {
+				board = lastBoard.map((row) =>
+					row.map((cell) => ({
+						...cell,
+						notes: new Set(cell.notes),
+					})),
+				);
+			}
 		}
 	}
 
