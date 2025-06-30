@@ -19,6 +19,27 @@
   function selectCell(row: number, col: number) {
     selectedCell = { row, col };
   }
+
+  function isHighlighted(row: number, col: number) {
+    if (!selectedCell) return false;
+
+    const { row: selectedRow, col: selectedCol } = selectedCell;
+
+    // Highlight the selected row and column
+    if (row === selectedRow || col === selectedCol) {
+      return true;
+    }
+
+    // Highlight the 3x3 subgrid
+    const startRow = Math.floor(selectedRow / 3) * 3;
+    const startCol = Math.floor(selectedCol / 3) * 3;
+    return (
+      row >= startRow &&
+      row < startRow + 3 &&
+      col >= startCol &&
+      col < startCol + 3
+    );
+  }
 </script>
 
 <main>
@@ -26,11 +47,14 @@
     <div class="grid">
       {#each board as row, i}
         {#each row as cell, j}
-          <div class="cell-wrapper"
-              class:right-border={(j + 1) % 3 === 0 && j < 8}
-              class:bottom-border={(i + 1) % 3 === 0 && i < 8}
-              class:selected={selectedCell && selectedCell.row === i && selectedCell.col === j}
-              on:click={() => selectCell(i, j)}>
+          <div
+            class="cell-wrapper"
+            class:right-border={(j + 1) % 3 === 0 && j < 8}
+            class:bottom-border={(i + 1) % 3 === 0 && i < 8}
+            class:selected={selectedCell && selectedCell.row === i && selectedCell.col === j}
+            class:highlighted={isHighlighted(i, j)}
+            on:click={() => selectCell(i, j)}
+          >
             <Cell value={cell.value} />
           </div>
         {/each}
@@ -41,7 +65,20 @@
   <div class="control-bar">
     <div class="actions-row">
       <button class="action-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><polyline points="9 14 4 9 9 4"></polyline><path
+            d="M20 20v-7a4 4 0 0 0-4-4H4"
+          ></path></svg
+        >
         <span>Undo</span>
       </button>
     </div>
@@ -82,7 +119,7 @@
     max-width: 600px;
     max-height: 600px;
     border: 3px solid #343a40;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -94,7 +131,11 @@
   }
 
   .cell-wrapper.selected {
-    background-color: #E6E6FA;
+    background-color: #e6e6fa;
+  }
+
+  .cell-wrapper.highlighted {
+    background-color: #f0f0f0;
   }
 
   .right-border {
@@ -109,7 +150,7 @@
     background-color: #ffffff;
     padding: 0.75rem;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 600px; /* Match the grid */
     box-sizing: border-box;
