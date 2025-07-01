@@ -1,3 +1,3 @@
 [submodule "src/lib/sudoku"]
 	path = src/lib/sudoku
-	url = https://github.com/einaregilsson/sudoku.js
+	url = git@github.com:The-Ofek-Foundation/sudoku.ts.git
