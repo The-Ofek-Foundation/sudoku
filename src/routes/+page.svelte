@@ -15,7 +15,7 @@
 	};
 
 	let selectedCell: { row: number; col: number } | null = null;
-	let gamePhase: 'configuring' | 'solving' = 'configuring';
+	let gamePhase: 'configuring' | 'solving' | 'manual' = 'configuring';
 	let inputMode: 'normal' | 'note' = 'normal';
 	let errorMessage: string | null = null;
 	let history: CellData[][][] = [];
@@ -24,6 +24,8 @@
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
 	let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+	let gridSize = '600px'; // Default size
+	let cyclingNumber: number | null = null; // Current number when cycling with Tab
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -39,7 +41,124 @@
 
 	function updateHighlightedNumber(row: number, col: number) {
 		const cellValue = board[row][col].value;
-		highlightedNumber = cellValue;
+		if (cellValue !== null) {
+			// Cell has a value, highlight that number
+			highlightedNumber = cellValue;
+			cyclingNumber = null; // Reset cycling for cells with values
+		} else if ((gamePhase === 'solving' || gamePhase === 'manual') && board[row][col].notes.size > 0) {
+			// Cell has no value but has notes during solving/manual phase - auto-start cycling
+			highlightedNumber = null;
+			startCycling(); // Automatically start cycling with the first available number
+		} else {
+			// Cell is empty with no notes, or we're in config phase
+			highlightedNumber = null;
+			cyclingNumber = null;
+		}
+	}
+
+	function getAvailableNumbersForCycling(): number[] {
+		if (!selectedCell || (gamePhase !== 'solving' && gamePhase !== 'manual')) return [];
+		
+		const { row, col } = selectedCell;
+		const cell = board[row][col];
+		
+		// Only cycle for empty cells
+		if (cell.value !== null) return [];
+		
+		if (inputMode === 'normal') {
+			// In both solving and manual mode, cycle through numbers that have notes
+			return Array.from(cell.notes).sort();
+		} else {
+			// In note mode, cycle through all numbers 1-9 for both modes
+			return [1, 2, 3, 4, 5, 6, 7, 8, 9];
+		}
+	}
+
+	function startCycling() {
+		const availableNumbers = getAvailableNumbersForCycling();
+		if (availableNumbers.length === 0) return;
+		
+		// Start with the smallest available number
+		cyclingNumber = availableNumbers[0];
+		highlightedNumber = cyclingNumber;
+	}
+
+	function cycleToNextNumber() {
+		const availableNumbers = getAvailableNumbersForCycling();
+		if (availableNumbers.length === 0) return;
+		
+		if (cyclingNumber === null) {
+			startCycling();
+			return;
+		}
+		
+		const currentIndex = availableNumbers.indexOf(cyclingNumber);
+		const nextIndex = (currentIndex + 1) % availableNumbers.length;
+		cyclingNumber = availableNumbers[nextIndex];
+		highlightedNumber = cyclingNumber;
+	}
+
+	function placeCyclingNumber() {
+		if (cyclingNumber === null || !selectedCell) return;
+		
+		handleInput(cyclingNumber);
+		// Don't reset cycling - keep the same number highlighted for consecutive placements
+	}
+
+	function getCellsWithSameNumber(targetNumber: number): { row: number; col: number }[] {
+		const cellsWithNumber: { row: number; col: number }[] = [];
+		
+		for (let row = 0; row < 9; row++) {
+			for (let col = 0; col < 9; col++) {
+				if (board[row][col].value === targetNumber) {
+					cellsWithNumber.push({ row, col });
+				}
+			}
+		}
+		
+		return cellsWithNumber;
+	}
+
+	function cycleToNextCellWithSameNumber() {
+		if (!selectedCell) return;
+		
+		const currentValue = board[selectedCell.row][selectedCell.col].value;
+		if (currentValue === null) return; // Only cycle for cells with values
+		
+		const cellsWithSameNumber = getCellsWithSameNumber(currentValue);
+		if (cellsWithSameNumber.length <= 1) return; // No other cells to cycle to
+		
+		// Find current cell index in the list
+		const currentIndex = cellsWithSameNumber.findIndex(
+			cell => cell.row === selectedCell!.row && cell.col === selectedCell!.col
+		);
+		
+		if (currentIndex === -1) return; // Current cell not found (shouldn't happen)
+		
+		// Move to next cell (wrap around to beginning if at end)
+		const nextIndex = (currentIndex + 1) % cellsWithSameNumber.length;
+		const nextCell = cellsWithSameNumber[nextIndex];
+		
+		selectedCell = { row: nextCell.row, col: nextCell.col };
+		updateHighlightedNumber(nextCell.row, nextCell.col);
+	}
+
+	function getNumberCounts(): { [key: number]: number } {
+		const counts: { [key: number]: number } = {};
+		for (let i = 1; i <= 9; i++) {
+			counts[i] = 0;
+		}
+		
+		for (let row = 0; row < 9; row++) {
+			for (let col = 0; col < 9; col++) {
+				const value = board[row][col].value;
+				if (value !== null) {
+					counts[value]++;
+				}
+			}
+		}
+		
+		return counts;
 	}
 
 	function getPossibleNumbers(row: number, col: number): Set<number> {
@@ -112,8 +231,11 @@
 	}
 
 	function handleInput(num: number) {
-		// If there's an error, don't allow any input until undo is pressed
-		if (errorCell) return;
+		// Always highlight the selected number
+		highlightedNumber = num;
+		
+		// If there's an error, don't allow any input until undo is pressed (only in solving mode)
+		if (errorCell && gamePhase === 'solving') return;
 		
 		if (selectedCell) {
 			const { row, col } = selectedCell;
@@ -121,7 +243,26 @@
 				board[row][col].value = num;
 				// Trigger reactivity
 				board = board;
+			} else if (gamePhase === 'manual') {
+				// Manual mode: no restrictions, no error checking, no automatic note updates
+				if (inputMode === 'normal' && !board[row][col].isInitial) {
+					saveToHistory();
+					board[row][col].value = num;
+					board[row][col].notes.clear();
+					// Trigger reactivity
+					board = board;
+				} else if (inputMode === 'note' && !board[row][col].isInitial) {
+					saveToHistory();
+					if (board[row][col].notes.has(num)) {
+						board[row][col].notes.delete(num);
+					} else {
+						board[row][col].notes.add(num);
+					}
+					// Trigger reactivity
+					board = board;
+				}
 			} else if (inputMode === 'normal' && !board[row][col].isInitial) {
+				// Solving mode with error checking
 				// Only allow input if cell is empty
 				if (board[row][col].value === null) {
 					saveToHistory();
@@ -137,12 +278,10 @@
 					}
 					// Trigger reactivity
 					board = board;
-				} else {
-					// Cell already has a value - deselect it but highlight the number
-					selectedCell = null;
-					highlightedNumber = num;
 				}
+				// Keep the cell selected and number highlighted for continued placement
 			} else if (inputMode === 'note' && !board[row][col].isInitial) {
+				// Note mode in solving phase
 				saveToHistory();
 				if (board[row][col].notes.has(num)) {
 					board[row][col].notes.delete(num);
@@ -151,15 +290,11 @@
 				}
 				// Trigger reactivity
 				board = board;
-			} else {
-				// Cell is initial or can't be modified - deselect and highlight the number
-				selectedCell = null;
-				highlightedNumber = num;
+				// Keep the cell selected and number highlighted for continued note placement
 			}
-		} else {
-			// No cell selected - just highlight the number
-			highlightedNumber = num;
+			// Keep the cell selected and number highlighted even if cell can't be modified
 		}
+		// If no cell is selected, just highlight the number (no change in behavior)
 	}
 
 	function handleDelete() {
@@ -202,6 +337,25 @@
 		}
 	}
 
+	function startManualGame() {
+		errorMessage = null;
+		solution = null; // No solution checking in manual mode
+		gamePhase = 'manual';
+		
+		// Mark existing numbers as initial and give all empty cells all possible notes
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				if (board[i][j].value !== null) {
+					board[i][j].isInitial = true;
+				} else {
+					// In manual mode, start with all numbers available as notes
+					board[i][j].notes = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+				}
+			}
+		}
+		saveToHistory();
+	}
+
 	function saveToHistory() {
 		const newBoard = board.map((row) =>
 			row.map((cell) => ({
@@ -227,7 +381,7 @@
 			);
 
 		// Generate a new puzzle using the sudoku library
-		const generatedPuzzle = sudoku.generate(difficulty);
+		const generatedPuzzle = sudoku.generate(difficulty) as { [key: string]: string };
 		
 		// Convert the generated puzzle to our board format
 		const rows = 'ABCDEFGHI';
@@ -268,18 +422,104 @@
 			const num = parseInt(event.key);
 			if (!isNaN(num) && num >= 1 && num <= 9) {
 				handleInput(num);
+				// Reset cycling when manually typing a number
+				cyclingNumber = null;
 			} else if (event.key === 'Delete' || event.key === 'Backspace') {
 				handleDelete();
-			} else if (event.key === 'p') {
-				const puzzle =
-					'53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79';
-				for (let i = 0; i < 9; i++) {
-					for (let j = 0; j < 9; j++) {
-						const char = puzzle[i * 9 + j];
-						board[i][j].value = char === '.' ? null : parseInt(char);
+				} else if (event.key === 'Tab') {
+				event.preventDefault(); // Prevent default tab behavior
+				
+				if (selectedCell) {
+					const currentValue = board[selectedCell.row][selectedCell.col].value;
+					
+					if (currentValue !== null) {
+						// Cell has a value - cycle to next cell with same number
+						cycleToNextCellWithSameNumber();
+					} else if (gamePhase === 'solving' || gamePhase === 'manual') {
+						// Cell is empty and we're in solving or manual phase - cycle through available numbers
+						cycleToNextNumber();
 					}
 				}
-				board = board;
+			} else if (event.key === 'Enter') {
+				event.preventDefault(); // Prevent default enter behavior
+				
+				// Place/toggle the cycling number
+				if (selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && cyclingNumber !== null) {
+					const { row, col } = selectedCell;
+					if (board[row][col].value === null) {
+						placeCyclingNumber();
+					}
+				}
+			} else if (event.key.toLowerCase() === 'c') {
+				// Toggle ColorKu mode (available in all phases)
+				colorKuMode = !colorKuMode;
+			} else if (gamePhase === 'configuring') {
+				// Configuration phase hotkeys
+				if (event.key.toLowerCase() === 'g') {
+					generatePuzzle();
+				} else if (event.key.toLowerCase() === 'd') {
+					// Cycle through difficulties: easy -> medium -> hard -> easy
+					const difficulties = ['easy', 'medium', 'hard'] as const;
+					const currentIndex = difficulties.indexOf(difficulty);
+					const nextIndex = (currentIndex + 1) % difficulties.length;
+					difficulty = difficulties[nextIndex];
+				} else if (event.key.toLowerCase() === 's') {
+					startGame();
+				} else if (event.key.toLowerCase() === 'm') {
+					startManualGame();
+				}
+			} else if (gamePhase === 'solving' || gamePhase === 'manual') {
+				// Solving and manual phase hotkeys
+				if (event.key.toLowerCase() === 'n') {
+					// Toggle normal/note mode
+					inputMode = inputMode === 'normal' ? 'note' : 'normal';
+				} else if (event.key.toLowerCase() === 'u') {
+					undo();
+				}
+			}
+			
+			// Navigation keys - Arrow keys always available, WASD only in solving and manual phase
+			const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key);
+			const isWASD = ['w', 'a', 's', 'd'].includes(event.key.toLowerCase());
+			
+			if (isArrowKey || (isWASD && (gamePhase === 'solving' || gamePhase === 'manual'))) {
+				// Handle navigation keys
+				event.preventDefault(); // Prevent default behavior (like scrolling)
+				
+				if (!selectedCell) {
+					// If no cell is selected, start at the center
+					selectedCell = { row: 4, col: 4 };
+					updateHighlightedNumber(4, 4);
+					return;
+				}
+				
+				let newRow = selectedCell.row;
+				let newCol = selectedCell.col;
+				
+				switch (event.key.toLowerCase()) {
+					case 'arrowup':
+					case 'w':
+						newRow = Math.max(0, selectedCell.row - 1);
+						break;
+					case 'arrowdown':
+					case 's':
+						newRow = Math.min(8, selectedCell.row + 1);
+						break;
+					case 'arrowleft':
+					case 'a':
+						newCol = Math.max(0, selectedCell.col - 1);
+						break;
+					case 'arrowright':
+					case 'd':
+						newCol = Math.min(8, selectedCell.col + 1);
+						break;
+				}
+				
+				// Update selected cell if position changed
+				if (newRow !== selectedCell.row || newCol !== selectedCell.col) {
+					selectedCell = { row: newRow, col: newCol };
+					updateHighlightedNumber(newRow, newCol);
+				}
 			}
 		};
 
@@ -299,6 +539,7 @@
 		{errorCell} 
 		{highlightedNumber}
 		{colorKuMode}
+		bind:gridSize
 		on:cellSelected={(e) => updateHighlightedNumber(e.detail.row, e.detail.col)}
 	/>
 
@@ -312,11 +553,16 @@
 		bind:difficulty
 		{gamePhase}
 		{errorCell}
-		on:startGame={startGame}
-		on:handleDelete={handleDelete}
-		on:undo={undo}
-		on:generatePuzzle={generatePuzzle}
-		on:handleInput={(e) => handleInput(e.detail)}
+		{gridSize}
+		{highlightedNumber}
+		selectedCellNotes={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].notes : new Set()}
+		numberCounts={getNumberCounts()}
+		onStartGame={startGame}
+		onStartManualGame={startManualGame}
+		onHandleDelete={handleDelete}
+		onUndo={undo}
+		onGeneratePuzzle={generatePuzzle}
+		onHandleInput={handleInput}
 	/>
 </main>
 
@@ -332,6 +578,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 		min-height: 100vh;
 		min-height: 100dvh; /* Dynamic viewport height for mobile */
 		padding: 1rem;
@@ -349,8 +596,27 @@
 		}
 	}
 
+	/* Small screen height adjustments */
+	@media (max-height: 600px) {
+		main {
+			padding: 0.25rem;
+			padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+			gap: 0.25rem;
+		}
+	}
+
 	.error-message {
 		color: red;
 		margin-top: 1rem;
+		text-align: center;
+		font-size: 0.9rem;
+	}
+
+	/* Small screen adjustments for error message */
+	@media (max-height: 600px) {
+		.error-message {
+			margin-top: 0.25rem;
+			font-size: 0.8rem;
+		}
 	}
 </style>

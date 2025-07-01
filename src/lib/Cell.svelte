@@ -3,7 +3,7 @@
 
 	export let value: number | null = null;
 	export let notes: Set<number> = new Set();
-	export let gamePhase: 'configuring' | 'solving' = 'configuring';
+	export let gamePhase: 'configuring' | 'solving' | 'manual' = 'configuring';
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 
@@ -27,7 +27,7 @@
 		{:else}
 			<span class="value" class:highlighted={highlightedNumber === value}>{value}</span>
 		{/if}
-	{:else if gamePhase === 'solving'}
+	{:else if gamePhase === 'solving' || gamePhase === 'manual'}
 		<div class="notes-grid">
 			{#each Array(9) as _, i}
 				<div class="note-cell" class:highlighted={highlightedNumber === i + 1} class:dulled={shouldDullNote(i + 1)}>
@@ -61,6 +61,8 @@
 
 	.value {
 		font-size: min(6vmin, 4rem); /* Increased from 4.5vmin and 3rem */
+		font-weight: 100; /* Very thin font weight */
+		font-family: inherit; /* Use the same font as the rest of the app */
 		transition: color 0.2s ease;
 		line-height: 1;
 		display: flex;
@@ -76,6 +78,8 @@
 	@media (max-width: 768px) {
 		.value {
 			font-size: min(6.5vmin, 3.5rem); /* Increased from 5vmin and 2.5rem */
+			font-weight: 100; /* Keep very thin on mobile */
+			font-family: inherit; /* Consistent font on mobile */
 			max-width: min(10vmin, 50px);
 			max-height: min(10vmin, 50px);
 		}
@@ -83,6 +87,7 @@
 
 	.value.highlighted {
 		color: #1976d2; /* Blue color for highlighted numbers */
+		font-weight: 300; /* Increase font weight when highlighted */
 	}
 
 	.color-circle {
@@ -123,6 +128,8 @@
 		justify-content: center;
 		align-items: center;
 		font-size: min(2.2vmin, 1.1rem); /* Larger font size for notes */
+		font-weight: 300; /* Medium font weight for better visibility */
+		font-family: inherit; /* Use the same font as the rest of the app */
 		color: #adb5bd; /* Lighter gray for notes */
 		transition: color 0.2s ease;
 		padding: 0;
@@ -134,12 +141,14 @@
 	@media (max-width: 768px) {
 		.note-cell {
 			font-size: min(2.8vmin, 1rem);
+			font-weight: 300; /* Keep medium weight on mobile */
+			font-family: inherit; /* Consistent font on mobile */
 		}
 	}
 
 	.note-cell.highlighted {
 		color: #1976d2; /* Blue color for highlighted notes */
-		font-weight: 600;
+		font-weight: 500; /* Medium-bold font weight when highlighted */
 	}
 
 	.note-cell.dulled {

@@ -1,15 +1,18 @@
 <script lang="ts">
 	import Cell from '$lib/Cell.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
 	export let board: any[][];
 	export let selectedCell: { row: number; col: number } | null;
-	export let gamePhase: 'configuring' | 'solving';
+	export let gamePhase: 'configuring' | 'solving' | 'manual';
 	export let errorCell: { row: number; col: number } | null = null;
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
+	export let gridSize: string = '600px';
+
+	let gridContainer: HTMLElement;
 
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
@@ -34,10 +37,63 @@
 			col < startCol + 3
 		);
 	}
+
+	function calculateOptimalGridSize() {
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+		
+		// Estimate the height needed for controls panel and padding more accurately
+		// For mobile (max-height: 600px): Controls ~100px, Padding ~20px
+		// For desktop: Controls ~140px, Padding ~80px
+		let controlsHeight, paddingHeight;
+		
+		if (viewportHeight <= 600) {
+			// Small screen mode
+			controlsHeight = 100;
+			paddingHeight = 20;
+		} else if (viewportWidth <= 768) {
+			// Mobile mode
+			controlsHeight = 120;
+			paddingHeight = 40;
+		} else {
+			// Desktop mode
+			controlsHeight = 140;
+			paddingHeight = 80;
+		}
+		
+		const availableHeight = viewportHeight - controlsHeight - paddingHeight;
+		
+		// Account for horizontal padding
+		const horizontalPadding = viewportWidth <= 768 ? 16 : 32;
+		const availableWidth = viewportWidth - horizontalPadding;
+		
+		// Choose the smaller dimension and ensure it doesn't exceed our max size
+		const maxSize = Math.min(availableHeight, availableWidth, 600);
+		
+		// Ensure minimum size for usability
+		const minSize = 240;
+		const optimalSize = Math.max(minSize, maxSize);
+		
+		gridSize = `${optimalSize}px`;
+	}
+
+	onMount(() => {
+		calculateOptimalGridSize();
+		
+		const handleResize = () => {
+			calculateOptimalGridSize();
+		};
+		
+		window.addEventListener('resize', handleResize);
+		
+		return () => {
+			window.removeEventListener('resize', handleResize);
+		};
+	});
 </script>
 
-<div class="grid-container">
-	<div class="grid">
+<div class="grid-container" bind:this={gridContainer}>
+	<div class="grid" style="width: {gridSize}; height: {gridSize}">
 		{#each board as row, i}
 			{#each row as cell, j}
 				<button
@@ -66,7 +122,8 @@
 
 <style>
 	.grid-container {
-		flex-grow: 1;
+		flex-grow: 0;
+		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -76,14 +133,11 @@
 		display: grid;
 		grid-template-columns: repeat(9, 1fr);
 		grid-template-rows: repeat(9, 1fr);
-		width: 95vmin;
-		height: 95vmin;
-		max-width: 600px;
-		max-height: 600px;
 		border: 3px solid #343a40;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 		border-radius: 8px;
 		overflow: hidden;
+		transition: width 0.3s ease, height 0.3s ease;
 	}
 	.cell-wrapper {
 		position: relative;

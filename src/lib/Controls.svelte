@@ -1,14 +1,25 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { colorKuColors } from './colors.js';
 
-	export let gamePhase: 'configuring' | 'solving';
+	export let gamePhase: 'configuring' | 'solving' | 'manual';
 	export let inputMode: 'normal' | 'note';
 	export let errorCell: { row: number; col: number } | null = null;
 	export let colorKuMode: boolean = false;
 	export let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+	export let gridSize: string = '600px';
+	export let highlightedNumber: number | null = null;
+	export let selectedCellNotes: Set<number> = new Set();
+	export let numberCounts: { [key: number]: number } = {};
 
-	const dispatch = createEventDispatcher();
+	// Callback props instead of event dispatcher
+	export let onStartGame: () => void;
+	export let onStartManualGame: () => void;
+	export let onHandleDelete: () => void;
+	export let onUndo: () => void;
+	export let onHandleInput: (num: number) => void;
+	export let onGeneratePuzzle: () => void;
+
+	let startMode: 'normal' | 'manual' = 'normal';
 
 	let isNoteMode = inputMode === 'note';
 
@@ -19,45 +30,69 @@
 	}
 
 	function startGame() {
-		dispatch('startGame');
+		if (startMode === 'normal') {
+			onStartGame();
+		} else {
+			onStartManualGame();
+		}
 	}
 
 	function handleDelete() {
-		dispatch('handleDelete');
+		onHandleDelete();
 	}
 
 	function undo() {
-		dispatch('undo');
+		onUndo();
 	}
 
 	function handleInput(num: number) {
-		dispatch('handleInput', num);
+		onHandleInput(num);
 	}
 
 	function generatePuzzle() {
-		dispatch('generatePuzzle');
+		onGeneratePuzzle();
 	}
 </script>
 
-<div class="control-bar">
+<div class="control-bar" style="max-width: {gridSize}">
 	<div class="actions-row">
 		{#if gamePhase === 'configuring'}
-			<div class="difficulty-selector">
-				<label for="difficulty">Difficulty:</label>
-				<select id="difficulty" bind:value={difficulty} class="difficulty-dropdown">
+			<div class="generate-group">
+				<button class="action-button generate-button" on:click={generatePuzzle}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+						<path d="M3 3v5h5"/>
+						<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+						<path d="M21 21v-5h-5"/>
+					</svg>
+					<span>Generate</span>
+				</button>
+				<select bind:value={difficulty} class="difficulty-compact">
 					<option value="easy">Easy</option>
 					<option value="medium">Medium</option>
 					<option value="hard">Hard</option>
 				</select>
 			</div>
-			<button class="action-button" on:click={generatePuzzle}>
-				<span>Generate Puzzle</span>
-			</button>
-			<button class="action-button" on:click={startGame}>
-				<span>Start Game</span>
-			</button>
-			<button class="action-button" on:click={handleDelete}>
-				<span>Delete</span>
+			<div class="start-group">
+				<button class="action-button start-button" on:click={startGame}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<polygon points="5,3 19,12 5,21"></polygon>
+					</svg>
+					<span>Start</span>
+				</button>
+				<select bind:value={startMode} class="start-mode-compact">
+					<option value="normal">Normal</option>
+					<option value="manual">Manual</option>
+				</select>
+			</div>
+			<button class="action-button icon-button" on:click={handleDelete} aria-label="Delete">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 6h18"/>
+					<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+					<path d="M8 6V4c0-1 1-2 2-2h4c0 1 1 2 2 2v2"/>
+					<line x1="10" y1="11" x2="10" y2="17"/>
+					<line x1="14" y1="11" x2="14" y2="17"/>
+				</svg>
 			</button>
 		{:else}
 			<div class="note-mode-toggle">
@@ -65,8 +100,8 @@
 				<button 
 					class="toggle-switch" 
 					class:active={isNoteMode}
-					class:disabled={errorCell}
-					disabled={errorCell !== null}
+					class:disabled={errorCell && gamePhase === 'solving'}
+					disabled={errorCell !== null && gamePhase === 'solving'}
 					on:click={toggleNoteMode}
 					aria-label="Toggle note mode"
 					role="switch"
@@ -76,7 +111,7 @@
 				</button>
 				<span class="toggle-label" class:active={isNoteMode}>Note</span>
 			</div>
-			<button class="action-button" class:error={errorCell} on:click={undo}>
+			<button class="action-button" class:error={errorCell && gamePhase === 'solving'} on:click={undo}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -96,36 +131,47 @@
 		{/if}
 		
 		<!-- ColorKu Mode Toggle - Available in all phases -->
-		<div class="colorku-toggle">
-			<label class="checkbox-label">
-				<input 
-					type="checkbox" 
-					bind:checked={colorKuMode}
-					class="colorku-checkbox"
-				/>
-				<span class="checkmark"></span>
-				ColorKu
-			</label>
-		</div>
+		<button 
+			class="action-button colorku-button" 
+			class:active={colorKuMode}
+			on:click={() => colorKuMode = !colorKuMode}
+			aria-label="Toggle ColorKu mode"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="12" cy="12" r="10"/>
+				<path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+				<line x1="9" y1="9" x2="9.01" y2="9"/>
+				<line x1="15" y1="9" x2="15.01" y2="9"/>
+			</svg>
+			<span>ColorKu</span>
+		</button>
 	</div>
 
 	<div class="number-palette">
 		{#each Array(9) as _, i}
-			<button 
-				class="number-button" 
-				class:disabled={errorCell}
-				disabled={errorCell !== null}
-				on:click={() => handleInput(i + 1)}
-			>
-				{#if colorKuMode}
-					<div 
-						class="palette-color-circle"
-						style="background-color: {colorKuColors[i + 1]}"
-					></div>
-				{:else}
-					{i + 1}
-				{/if}
-			</button>
+			{#if gamePhase === 'configuring' || gamePhase === 'manual' || (numberCounts[i + 1] || 0) < 9}
+				<button 
+					class="number-button" 
+					class:disabled={errorCell && gamePhase === 'solving'}
+					class:highlighted={highlightedNumber === i + 1}
+					class:note-highlighted={selectedCellNotes.has(i + 1)}
+					class:dulled={colorKuMode && selectedCellNotes.size > 0 && !selectedCellNotes.has(i + 1)}
+					disabled={errorCell !== null && gamePhase === 'solving'}
+					on:click={() => handleInput(i + 1)}
+				>
+					{#if colorKuMode}
+						<div 
+							class="palette-color-circle"
+							class:dulled={selectedCellNotes.size > 0 && !selectedCellNotes.has(i + 1)}
+							style="background-color: {colorKuColors[i + 1]}"
+						></div>
+					{:else}
+						{i + 1}
+					{/if}
+				</button>
+			{:else}
+				<div class="number-button-placeholder"></div>
+			{/if}
 		{/each}
 	</div>
 </div>
@@ -137,7 +183,6 @@
 		border-radius: 12px;
 		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 		width: 100%;
-		max-width: 600px; /* Match the grid */
 		box-sizing: border-box;
 		margin-top: 1rem; /* Reduced from 1rem */
 		flex-shrink: 0; /* Prevent shrinking on mobile */
@@ -151,6 +196,14 @@
 			border-radius: 8px;
 		}
 	}
+
+	/* Small screen adjustments for very tight spaces */
+	@media (max-height: 600px) {
+		.control-bar {
+			padding: 0.375rem;
+			margin-top: 0.25rem;
+		}
+	}
 	.actions-row {
 		display: flex;
 		justify-content: flex-start;
@@ -160,35 +213,95 @@
 		flex-wrap: wrap; /* Allow wrapping on smaller screens */
 	}
 
-	.difficulty-selector {
+	/* Small screen adjustments */
+	@media (max-height: 600px) {
+		.actions-row {
+			gap: 0.5rem;
+			margin-bottom: 0.5rem;
+		}
+	}
+
+	.generate-group {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+		align-items: stretch;
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
-	.difficulty-selector label {
-		font-size: 0.9rem;
-		font-weight: 500;
-		color: #495057;
-		white-space: nowrap;
+	.start-group {
+		display: flex;
+		align-items: stretch;
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
-	.difficulty-dropdown {
-		padding: 0.375rem 0.75rem;
+	.generate-button {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+		border-right: none;
+		flex: 1;
+	}
+
+	.start-button {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+		border-right: none;
+		flex: 1;
+	}
+
+	.difficulty-compact {
+		padding: 0.5rem 0.75rem;
 		border: 1px solid #dee2e6;
-		border-radius: 6px;
-		background-color: #fff;
+		border-left: none;
+		background-color: #f8f9fa;
 		color: #495057;
-		font-size: 0.9rem;
+		font-size: 0.85rem;
+		font-weight: 500;
 		cursor: pointer;
-		transition: border-color 0.2s;
+		transition: all 0.2s;
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+		border-top-right-radius: 8px;
+		border-bottom-right-radius: 8px;
+		min-width: 80px;
 	}
 
-	.difficulty-dropdown:hover {
-		border-color: #adb5bd;
+	.start-mode-compact {
+		padding: 0.5rem 0.75rem;
+		border: 1px solid #dee2e6;
+		border-left: none;
+		background-color: #f8f9fa;
+		color: #495057;
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s;
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+		border-top-right-radius: 8px;
+		border-bottom-right-radius: 8px;
+		min-width: 80px;
 	}
 
-	.difficulty-dropdown:focus {
+	.difficulty-compact:hover {
+		background-color: #e9ecef;
+		border-color: #ced4da;
+	}
+
+	.difficulty-compact:focus {
+		outline: none;
+		border-color: #80bdff;
+		box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+	}
+
+	.start-mode-compact:hover {
+		background-color: #e9ecef;
+		border-color: #ced4da;
+	}
+
+	.start-mode-compact:focus {
 		outline: none;
 		border-color: #80bdff;
 		box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
@@ -227,6 +340,37 @@
 		width: 1.1em;
 		height: 1.1em;
 	}
+
+	.icon-button {
+		padding: 0.5rem;
+		min-width: auto;
+		aspect-ratio: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.colorku-button {
+		background-color: #f8f9fa;
+		border-color: #e9ecef;
+		transition: all 0.2s ease;
+	}
+
+	.colorku-button:hover {
+		background-color: #e9ecef;
+		border-color: #ced4da;
+	}
+
+	.colorku-button.active {
+		background-color: #28a745;
+		border-color: #28a745;
+		color: white;
+	}
+
+	.colorku-button.active:hover {
+		background-color: #218838;
+		border-color: #1e7e34;
+	}
 	.number-palette {
 		display: grid;
 		grid-template-columns: repeat(9, 1fr);
@@ -239,9 +383,18 @@
 			gap: 0.25rem;
 		}
 	}
+
+	/* Small screen adjustments */
+	@media (max-height: 600px) {
+		.number-palette {
+			gap: 0.2rem;
+		}
+	}
 	.number-button {
 		padding: 0.5rem 0; /* Reduced padding */
 		font-size: 1.8rem; /* Increased font size */
+		font-weight: 100; /* Much thinner font weight */
+		font-family: inherit; /* Use the same font as the rest of the app */
 		border: none;
 		background-color: #e9ecef;
 		color: #495057;
@@ -254,9 +407,43 @@
 		align-items: center;
 		justify-content: center;
 	}
+
+	/* Small screen adjustments for number buttons */
+	@media (max-height: 600px) {
+		.number-button {
+			padding: 0.3rem 0;
+			font-size: 1.4rem;
+			font-weight: 100; /* Keep very thin weight on small screens */
+			font-family: inherit; /* Consistent font on small screens */
+		}
+	}
 	.number-button:hover {
 		background-color: #ced4da;
 		color: #212529;
+	}
+	.number-button.highlighted {
+		color: #1976d2; /* Blue color for highlighted numbers */
+		font-weight: 300; /* Increase font weight when highlighted */
+		background-color: #e3f2fd; /* Light blue background */
+	}
+	.number-button.highlighted:hover {
+		background-color: #bbdefb; /* Darker blue on hover when highlighted */
+		color: #1565c0;
+	}
+	.number-button.note-highlighted {
+		background-color: #f3e5f5; /* Light purple background for note highlighting */
+		border: 2px solid #9c27b0; /* Purple border */
+		color: #7b1fa2; /* Purple text */
+	}
+	.number-button.note-highlighted:hover {
+		background-color: #e1bee7; /* Darker purple on hover */
+		color: #6a1b9a;
+	}
+	/* When both highlighted and note-highlighted, prioritize the main highlight */
+	.number-button.highlighted.note-highlighted {
+		background-color: #e3f2fd;
+		border: 2px solid #1976d2;
+		color: #1976d2;
 	}
 	.number-button.disabled {
 		opacity: 0.4;
@@ -269,6 +456,15 @@
 	.number-button:disabled:hover {
 		background-color: #e9ecef;
 		color: #495057;
+	}
+	.number-button.dulled {
+		opacity: 0.65;
+		transition: opacity 0.2s ease;
+	}
+
+	.number-button-placeholder {
+		/* Empty placeholder to maintain grid layout */
+		grid-column: span 1;
 	}
 	.note-mode-toggle {
 		display: flex;
@@ -368,64 +564,6 @@
 		cursor: not-allowed;
 	}
 
-	.colorku-toggle {
-		display: flex;
-		align-items: center;
-	}
-
-	.checkbox-label {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		cursor: pointer;
-		font-size: 0.9rem;
-		font-weight: 500;
-		color: #495057;
-		user-select: none;
-		position: relative;
-	}
-
-	.colorku-checkbox {
-		position: relative;
-		width: 18px;
-		height: 18px;
-		cursor: pointer;
-		opacity: 0;
-	}
-
-	.checkmark {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 18px;
-		height: 18px;
-		background-color: #fff;
-		border: 2px solid #dee2e6;
-		border-radius: 4px;
-		transition: all 0.2s ease;
-	}
-
-	.colorku-checkbox:checked + .checkmark {
-		background-color: #28a745;
-		border-color: #28a745;
-	}
-
-	.colorku-checkbox:checked + .checkmark::after {
-		content: '';
-		position: absolute;
-		left: 5px;
-		top: 2px;
-		width: 4px;
-		height: 8px;
-		border: solid white;
-		border-width: 0 2px 2px 0;
-		transform: rotate(45deg);
-	}
-
-	.checkbox-label:hover .checkmark {
-		border-color: #adb5bd;
-	}
-
 	.palette-color-circle {
 		width: 32px;
 		height: 32px;
@@ -433,6 +571,11 @@
 		border: 2px solid rgba(0, 0, 0, 0.1);
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 		transition: all 0.2s ease;
+	}
+
+	.palette-color-circle.dulled {
+		opacity: 0.7;
+		filter: grayscale(15%);
 	}
 
 	.number-button:hover .palette-color-circle {
@@ -446,6 +589,8 @@
 		.number-button {
 			padding: 0.375rem 0;
 			font-size: 1.5rem;
+			font-weight: 100; /* Keep very thin weight on mobile */
+			font-family: inherit; /* Consistent font on mobile */
 		}
 		
 		.palette-color-circle {
@@ -461,6 +606,30 @@
 		.action-button {
 			padding: 0.375rem 0.75rem;
 			font-size: 0.8rem;
+		}
+
+		.icon-button {
+			padding: 0.375rem;
+		}
+
+		.generate-button {
+			padding: 0.375rem 0.5rem;
+		}
+
+		.start-button {
+			padding: 0.375rem 0.5rem;
+		}
+
+		.difficulty-compact {
+			padding: 0.375rem 0.5rem;
+			font-size: 0.75rem;
+			min-width: 70px;
+		}
+
+		.start-mode-compact {
+			padding: 0.375rem 0.5rem;
+			font-size: 0.75rem;
+			min-width: 70px;
 		}
 	}
 </style>
