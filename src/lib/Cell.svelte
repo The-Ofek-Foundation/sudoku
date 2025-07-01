@@ -60,7 +60,7 @@
 	}
 
 	.value {
-		font-size: min(4.5vmin, 3rem); /* Dynamic size based on viewport, capped at 3rem */
+		font-size: min(6vmin, 4rem); /* Increased from 4.5vmin and 3rem */
 		transition: color 0.2s ease;
 		line-height: 1;
 		display: flex;
@@ -75,7 +75,7 @@
 	/* Mobile-specific font sizing */
 	@media (max-width: 768px) {
 		.value {
-			font-size: min(5vmin, 2.5rem);
+			font-size: min(6.5vmin, 3.5rem); /* Increased from 5vmin and 2.5rem */
 			max-width: min(10vmin, 50px);
 			max-height: min(10vmin, 50px);
 		}

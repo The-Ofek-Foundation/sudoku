@@ -23,6 +23,7 @@
 	let errorCell: { row: number; col: number } | null = null;
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
+	let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -211,6 +212,41 @@
 		history.push(newBoard);
 	}
 
+	function generatePuzzle() {
+		// Clear the current board
+		board = Array(9)
+			.fill(null)
+			.map(() =>
+				Array(9)
+					.fill(null)
+					.map(() => ({
+						value: null,
+						notes: new Set<number>(),
+						isInitial: false,
+					})),
+			);
+
+		// Generate a new puzzle using the sudoku library
+		const generatedPuzzle = sudoku.generate(difficulty);
+		
+		// Convert the generated puzzle to our board format
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				const square = rows[i] + cols[j];
+				if (generatedPuzzle[square]) {
+					board[i][j].value = parseInt(generatedPuzzle[square]);
+				}
+			}
+		}
+		
+		// Trigger reactivity
+		board = board;
+		errorMessage = null;
+	}
+
 	function undo() {
 		if (history.length > 0) {
 			const lastBoard = history.pop();
@@ -273,11 +309,13 @@
 	<Controls
 		bind:inputMode
 		bind:colorKuMode
+		bind:difficulty
 		{gamePhase}
 		{errorCell}
 		on:startGame={startGame}
 		on:handleDelete={handleDelete}
 		on:undo={undo}
+		on:generatePuzzle={generatePuzzle}
 		on:handleInput={(e) => handleInput(e.detail)}
 	/>
 </main>

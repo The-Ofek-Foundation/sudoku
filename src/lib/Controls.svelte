@@ -6,6 +6,7 @@
 	export let inputMode: 'normal' | 'note';
 	export let errorCell: { row: number; col: number } | null = null;
 	export let colorKuMode: boolean = false;
+	export let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
 
 	const dispatch = createEventDispatcher();
 
@@ -32,11 +33,26 @@
 	function handleInput(num: number) {
 		dispatch('handleInput', num);
 	}
+
+	function generatePuzzle() {
+		dispatch('generatePuzzle');
+	}
 </script>
 
 <div class="control-bar">
 	<div class="actions-row">
 		{#if gamePhase === 'configuring'}
+			<div class="difficulty-selector">
+				<label for="difficulty">Difficulty:</label>
+				<select id="difficulty" bind:value={difficulty} class="difficulty-dropdown">
+					<option value="easy">Easy</option>
+					<option value="medium">Medium</option>
+					<option value="hard">Hard</option>
+				</select>
+			</div>
+			<button class="action-button" on:click={generatePuzzle}>
+				<span>Generate Puzzle</span>
+			</button>
 			<button class="action-button" on:click={startGame}>
 				<span>Start Game</span>
 			</button>
@@ -141,6 +157,41 @@
 		align-items: center;
 		gap: 0.75rem;
 		margin-bottom: 0.75rem; /* Reduced from 1rem */
+		flex-wrap: wrap; /* Allow wrapping on smaller screens */
+	}
+
+	.difficulty-selector {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.difficulty-selector label {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: #495057;
+		white-space: nowrap;
+	}
+
+	.difficulty-dropdown {
+		padding: 0.375rem 0.75rem;
+		border: 1px solid #dee2e6;
+		border-radius: 6px;
+		background-color: #fff;
+		color: #495057;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: border-color 0.2s;
+	}
+
+	.difficulty-dropdown:hover {
+		border-color: #adb5bd;
+	}
+
+	.difficulty-dropdown:focus {
+		outline: none;
+		border-color: #80bdff;
+		box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 	}
 	.action-button {
 		display: inline-flex;

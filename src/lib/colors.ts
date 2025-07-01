@@ -1,12 +1,12 @@
 // ColorKu color palette - shared across components
 export const colorKuColors: Record<number, string> = {
-	1: '#da014f',
-	2: '#fe6601',
-	3: '#f1ff17',
-	4: '#56ff00',
-	5: '#02ba06',
-	6: '#bcf0fe',
-	7: '#1991f8',
-	8: '#b290ff',
-	9: '#3301ef'
+	1: '#cf203a',
+	2: '#df7700',
+	3: '#eaf543',
+	4: '#a2ca42',
+	5: '#235744',
+	6: '#bdeffe',
+	7: '#0c3fcb',
+	8: '#ceacfc',
+	9: '#750b51'
 };
