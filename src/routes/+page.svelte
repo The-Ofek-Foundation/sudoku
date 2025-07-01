@@ -22,6 +22,7 @@
 	let solution: { [key: string]: string } | null = null;
 	let errorCell: { row: number; col: number } | null = null;
 	let highlightedNumber: number | null = null;
+	let colorKuMode: boolean = false;
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -261,6 +262,7 @@
 		{gamePhase} 
 		{errorCell} 
 		{highlightedNumber}
+		{colorKuMode}
 		on:cellSelected={(e) => updateHighlightedNumber(e.detail.row, e.detail.col)}
 	/>
 
@@ -270,6 +272,7 @@
 
 	<Controls
 		bind:inputMode
+		bind:colorKuMode
 		{gamePhase}
 		{errorCell}
 		on:startGame={startGame}

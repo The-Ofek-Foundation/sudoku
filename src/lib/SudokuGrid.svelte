@@ -9,6 +9,7 @@
 	export let gamePhase: 'configuring' | 'solving';
 	export let errorCell: { row: number; col: number } | null = null;
 	export let highlightedNumber: number | null = null;
+	export let colorKuMode: boolean = false;
 
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
@@ -55,6 +56,7 @@
 						notes={cell.notes} 
 						{gamePhase} 
 						{highlightedNumber}
+						{colorKuMode}
 					/>
 				</button>
 			{/each}

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { colorKuColors } from './colors.js';
 
 	export let gamePhase: 'configuring' | 'solving';
 	export let inputMode: 'normal' | 'note';
 	export let errorCell: { row: number; col: number } | null = null;
+	export let colorKuMode: boolean = false;
 
 	const dispatch = createEventDispatcher();
 
@@ -76,6 +78,19 @@
 				<span>Undo</span>
 			</button>
 		{/if}
+		
+		<!-- ColorKu Mode Toggle - Available in all phases -->
+		<div class="colorku-toggle">
+			<label class="checkbox-label">
+				<input 
+					type="checkbox" 
+					bind:checked={colorKuMode}
+					class="colorku-checkbox"
+				/>
+				<span class="checkmark"></span>
+				ColorKu
+			</label>
+		</div>
 	</div>
 
 	<div class="number-palette">
@@ -86,7 +101,14 @@
 				disabled={errorCell !== null}
 				on:click={() => handleInput(i + 1)}
 			>
-				{i + 1}
+				{#if colorKuMode}
+					<div 
+						class="palette-color-circle"
+						style="background-color: {colorKuColors[i + 1]}"
+					></div>
+				{:else}
+					{i + 1}
+				{/if}
 			</button>
 		{/each}
 	</div>
@@ -160,6 +182,9 @@
 		transition:
 			background-color 0.2s,
 			color 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 	.number-button:hover {
 		background-color: #ced4da;
@@ -273,5 +298,78 @@
 	.toggle-switch:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	.colorku-toggle {
+		display: flex;
+		align-items: center;
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: #495057;
+		user-select: none;
+		position: relative;
+	}
+
+	.colorku-checkbox {
+		position: relative;
+		width: 18px;
+		height: 18px;
+		cursor: pointer;
+		opacity: 0;
+	}
+
+	.checkmark {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 18px;
+		height: 18px;
+		background-color: #fff;
+		border: 2px solid #dee2e6;
+		border-radius: 4px;
+		transition: all 0.2s ease;
+	}
+
+	.colorku-checkbox:checked + .checkmark {
+		background-color: #28a745;
+		border-color: #28a745;
+	}
+
+	.colorku-checkbox:checked + .checkmark::after {
+		content: '';
+		position: absolute;
+		left: 5px;
+		top: 2px;
+		width: 4px;
+		height: 8px;
+		border: solid white;
+		border-width: 0 2px 2px 0;
+		transform: rotate(45deg);
+	}
+
+	.checkbox-label:hover .checkmark {
+		border-color: #adb5bd;
+	}
+
+	.palette-color-circle {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		border: 2px solid rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		transition: all 0.2s ease;
+	}
+
+	.number-button:hover .palette-color-circle {
+		border-color: rgba(0, 0, 0, 0.3);
+		box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+		transform: scale(1.05);
 	}
 </style>
