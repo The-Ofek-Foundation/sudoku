@@ -3,6 +3,7 @@
 
 	export let gamePhase: 'configuring' | 'solving';
 	export let inputMode: 'normal' | 'note';
+	export let errorCell: { row: number; col: number } | null = null;
 
 	const dispatch = createEventDispatcher();
 
@@ -41,16 +42,23 @@
 				<span>Delete</span>
 			</button>
 		{:else}
-			<div class="toggle-switch">
-				<input
-					type="checkbox"
-					id="note-mode"
-					bind:checked={isNoteMode}
-					on:change={toggleNoteMode}
-				/>
-				<label for="note-mode">Note Mode</label>
+			<div class="note-mode-toggle">
+				<span class="toggle-label" class:active={!isNoteMode}>Normal</span>
+				<button 
+					class="toggle-switch" 
+					class:active={isNoteMode}
+					class:disabled={errorCell}
+					disabled={errorCell !== null}
+					on:click={toggleNoteMode}
+					aria-label="Toggle note mode"
+					role="switch"
+					aria-checked={isNoteMode}
+				>
+					<span class="toggle-slider"></span>
+				</button>
+				<span class="toggle-label" class:active={isNoteMode}>Note</span>
 			</div>
-			<button class="action-button" on:click={undo}>
+			<button class="action-button" class:error={errorCell} on:click={undo}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -72,9 +80,14 @@
 
 	<div class="number-palette">
 		{#each Array(9) as _, i}
-			<button class="number-button" on:click={() => handleInput(i + 1)}
-				>{i + 1}</button
+			<button 
+				class="number-button" 
+				class:disabled={errorCell}
+				disabled={errorCell !== null}
+				on:click={() => handleInput(i + 1)}
 			>
+				{i + 1}
+			</button>
 		{/each}
 	</div>
 </div>
@@ -117,6 +130,16 @@
 		background-color: #f8f9fa;
 		border-color: #ced4da;
 	}
+	.action-button.error {
+		background-color: #ffebee;
+		border-color: #f44336;
+		color: #c62828;
+		animation: error-pulse 1s ease-in-out infinite;
+	}
+	.action-button.error:hover {
+		background-color: #ffcdd2;
+		border-color: #d32f2f;
+	}
 	.action-button svg {
 		width: 1.1em;
 		height: 1.1em;
@@ -142,39 +165,113 @@
 		background-color: #ced4da;
 		color: #212529;
 	}
-	.toggle-switch {
+	.number-button.disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.number-button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.number-button:disabled:hover {
+		background-color: #e9ecef;
+		color: #495057;
+	}
+	.note-mode-toggle {
 		display: flex;
 		align-items: center;
+		gap: 0.75rem;
+		padding: 0.25rem 0.75rem;
+		background-color: #f8f9fa;
+		border-radius: 12px;
+		border: 1px solid #e9ecef;
 	}
-	.toggle-switch input {
-		display: none;
+
+	.toggle-label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #6c757d;
+		transition: color 0.3s ease;
+		user-select: none;
 	}
-	.toggle-switch label {
-		display: block;
-		width: 40px;
-		height: 20px;
-		background-color: #ccc;
-		border-radius: 10px;
+
+	.toggle-label.active {
+		color: #495057;
+		font-weight: 600;
+	}
+
+	.toggle-switch {
 		position: relative;
+		width: 54px;
+		height: 28px;
+		background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+		border: 2px solid #ced4da;
+		border-radius: 16px;
 		cursor: pointer;
-		transition: background-color 0.2s;
+		transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+		display: flex;
+		align-items: center;
+		outline: none;
+		box-shadow: 
+			inset 0 2px 4px rgba(0, 0, 0, 0.1),
+			0 1px 2px rgba(0, 0, 0, 0.05);
 	}
-	.toggle-switch label::after {
-		content: '';
-		display: block;
-		width: 16px;
-		height: 16px;
-		background-color: #fff;
-		border-radius: 50%;
+
+	.toggle-switch:hover {
+		border-color: #adb5bd;
+		box-shadow: 
+			inset 0 2px 4px rgba(0, 0, 0, 0.15),
+			0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.toggle-switch:focus {
+		border-color: #80bdff;
+		box-shadow: 
+			inset 0 2px 4px rgba(0, 0, 0, 0.1),
+			0 0 0 3px rgba(0, 123, 255, 0.25);
+	}
+
+	.toggle-switch.active {
+		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+		border-color: #28a745;
+		box-shadow: 
+			inset 0 2px 4px rgba(0, 0, 0, 0.2),
+			0 2px 8px rgba(40, 167, 69, 0.3);
+	}
+
+	.toggle-switch.active:hover {
+		background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+		border-color: #1e7e34;
+	}
+
+	.toggle-slider {
 		position: absolute;
-		top: 2px;
-		left: 2px;
-		transition: left 0.2s;
+		width: 20px;
+		height: 20px;
+		background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 50%;
+		left: 3px;
+		transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+		box-shadow: 
+			0 2px 4px rgba(0, 0, 0, 0.2),
+			0 1px 2px rgba(0, 0, 0, 0.1);
 	}
-	.toggle-switch input:checked + label {
-		background-color: #4caf50;
+
+	.toggle-switch.active .toggle-slider {
+		transform: translateX(26px);
+		background: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
+		box-shadow: 
+			0 3px 6px rgba(0, 0, 0, 0.3),
+			0 1px 3px rgba(0, 0, 0, 0.2);
 	}
-	.toggle-switch input:checked + label::after {
-		left: 22px;
+
+	.toggle-switch.disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.toggle-switch:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 </style>

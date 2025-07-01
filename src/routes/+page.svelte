@@ -19,6 +19,9 @@
 	let inputMode: 'normal' | 'note' = 'normal';
 	let errorMessage: string | null = null;
 	let history: CellData[][][] = [];
+	let solution: { [key: string]: string } | null = null;
+	let errorCell: { row: number; col: number } | null = null;
+	let highlightedNumber: number | null = null;
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -32,15 +35,111 @@
 				})),
 		);
 
+	function updateHighlightedNumber(row: number, col: number) {
+		const cellValue = board[row][col].value;
+		highlightedNumber = cellValue;
+	}
+
+	function getPossibleNumbers(row: number, col: number): Set<number> {
+		const possible = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+		const subgridRow = Math.floor(row / 3) * 3;
+		const subgridCol = Math.floor(col / 3) * 3;
+
+		// Remove numbers that exist in the same row
+		for (let i = 0; i < 9; i++) {
+			if (board[row][i].value !== null) {
+				possible.delete(board[row][i].value!);
+			}
+		}
+
+		// Remove numbers that exist in the same column
+		for (let i = 0; i < 9; i++) {
+			if (board[i][col].value !== null) {
+				possible.delete(board[i][col].value!);
+			}
+		}
+
+		// Remove numbers that exist in the same 3x3 subgrid
+		for (let i = subgridRow; i < subgridRow + 3; i++) {
+			for (let j = subgridCol; j < subgridCol + 3; j++) {
+				if (board[i][j].value !== null) {
+					possible.delete(board[i][j].value!);
+				}
+			}
+		}
+
+		return possible;
+	}
+
+	function isCorrectPlacement(row: number, col: number, num: number): boolean {
+		if (!solution) return true; // If no solution stored, can't verify
+		
+		// Convert row/col to sudoku library format (A1-I9)
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		const square = rows[row] + cols[col];
+		
+		return solution[square] === num.toString();
+	}
+
+	function updateNotesAfterPlacement(row: number, col: number, num: number) {
+		// Remove the placed number from notes in the same row, column, and 3x3 subgrid
+		const subgridRow = Math.floor(row / 3) * 3;
+		const subgridCol = Math.floor(col / 3) * 3;
+
+		for (let i = 0; i < 9; i++) {
+			// Remove from same row
+			if (i !== col && !board[row][i].isInitial) {
+				board[row][i].notes.delete(num);
+			}
+			
+			// Remove from same column
+			if (i !== row && !board[i][col].isInitial) {
+				board[i][col].notes.delete(num);
+			}
+		}
+
+		// Remove from same 3x3 subgrid
+		for (let i = subgridRow; i < subgridRow + 3; i++) {
+			for (let j = subgridCol; j < subgridCol + 3; j++) {
+				if ((i !== row || j !== col) && !board[i][j].isInitial) {
+					board[i][j].notes.delete(num);
+				}
+			}
+		}
+	}
+
 	function handleInput(num: number) {
+		// If there's an error, don't allow any input until undo is pressed
+		if (errorCell) return;
+		
 		if (selectedCell) {
 			const { row, col } = selectedCell;
 			if (gamePhase === 'configuring') {
 				board[row][col].value = num;
+				// Trigger reactivity
+				board = board;
 			} else if (inputMode === 'normal' && !board[row][col].isInitial) {
-				saveToHistory();
-				board[row][col].value = num;
-				board[row][col].notes.clear();
+				// Only allow input if cell is empty
+				if (board[row][col].value === null) {
+					saveToHistory();
+					board[row][col].value = num;
+					board[row][col].notes.clear();
+					
+					// Check if the placement is correct
+					if (!isCorrectPlacement(row, col, num)) {
+						errorCell = { row, col };
+					} else {
+						// Automatically update notes in related cells only if correct
+						updateNotesAfterPlacement(row, col, num);
+					}
+					// Trigger reactivity
+					board = board;
+				} else {
+					// Cell already has a value - deselect it but highlight the number
+					selectedCell = null;
+					highlightedNumber = num;
+				}
 			} else if (inputMode === 'note' && !board[row][col].isInitial) {
 				saveToHistory();
 				if (board[row][col].notes.has(num)) {
@@ -48,13 +147,21 @@
 				} else {
 					board[row][col].notes.add(num);
 				}
+				// Trigger reactivity
+				board = board;
+			} else {
+				// Cell is initial or can't be modified - deselect and highlight the number
+				selectedCell = null;
+				highlightedNumber = num;
 			}
-			// Trigger reactivity
-			board = board;
+		} else {
+			// No cell selected - just highlight the number
+			highlightedNumber = num;
 		}
 	}
 
 	function handleDelete() {
+		// Only allow deletion during configuration phase
 		if (selectedCell && gamePhase === 'configuring') {
 			const { row, col } = selectedCell;
 			board[row][col].value = null;
@@ -70,23 +177,22 @@
 
 		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 		// The library has been modified to be used as an ES module.
-		const solution = sudoku.solve(boardStr);
+		const solutionResult = sudoku.solve(boardStr);
 
-		if (solution === false) {
+		if (solutionResult === false) {
 			errorMessage = 'This puzzle has no solution.';
 		} else if (!sudoku.isUnique(boardStr)) {
 			errorMessage = 'This puzzle has multiple solutions.';
 		} else {
 			errorMessage = null;
+			solution = solutionResult; // Store the solution for verification
 			gamePhase = 'solving';
 			for (let i = 0; i < 9; i++) {
 				for (let j = 0; j < 9; j++) {
 					if (board[i][j].value !== null) {
 						board[i][j].isInitial = true;
 					} else {
-						board[i][j].notes = new Set(
-							Array.from({ length: 9 }, (_, i) => i + 1),
-						);
+						board[i][j].notes = getPossibleNumbers(i, j);
 					}
 				}
 			}
@@ -114,6 +220,8 @@
 						notes: new Set(cell.notes),
 					})),
 				);
+				// Clear error state when undoing
+				errorCell = null;
 			}
 		}
 	}
@@ -147,7 +255,14 @@
 </script>
 
 <main>
-	<SudokuGrid bind:board bind:selectedCell {gamePhase} />
+	<SudokuGrid 
+		bind:board 
+		bind:selectedCell 
+		{gamePhase} 
+		{errorCell} 
+		{highlightedNumber}
+		on:cellSelected={(e) => updateHighlightedNumber(e.detail.row, e.detail.col)}
+	/>
 
 	{#if errorMessage}
 		<div class="error-message">{errorMessage}</div>
@@ -156,6 +271,7 @@
 	<Controls
 		bind:inputMode
 		{gamePhase}
+		{errorCell}
 		on:startGame={startGame}
 		on:handleDelete={handleDelete}
 		on:undo={undo}
