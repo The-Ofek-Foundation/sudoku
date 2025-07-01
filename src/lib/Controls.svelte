@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { colorKuColors } from './colors.js';
+	import type { GamePhase, InputMode, Difficulty } from '$lib';
 
-	export let gamePhase: 'configuring' | 'solving' | 'manual';
-	export let inputMode: 'normal' | 'note';
+	export let gamePhase: GamePhase;
+	export let inputMode: InputMode;
 	export let errorCell: { row: number; col: number } | null = null;
 	export let colorKuMode: boolean = false;
-	export let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+	export let difficulty: Difficulty = 'easy';
 	export let gridSize: string = '600px';
 	export let highlightedNumber: number | null = null;
-	export let selectedCellNotes: Set<number> = new Set();
+	export let selectedCellCandidates: Set<number> = new Set(); // Renamed from selectedCellNotes for consistency
 	export let numberCounts: { [key: number]: number } = {};
 
 	// Callback props instead of event dispatcher
@@ -154,15 +155,15 @@
 					class="number-button" 
 					class:disabled={errorCell && gamePhase === 'solving'}
 					class:highlighted={highlightedNumber === i + 1}
-					class:note-highlighted={selectedCellNotes.has(i + 1)}
-					class:dulled={colorKuMode && selectedCellNotes.size > 0 && !selectedCellNotes.has(i + 1)}
+					class:note-highlighted={selectedCellCandidates.has(i + 1)}
+					class:dulled={colorKuMode && selectedCellCandidates.size > 0 && !selectedCellCandidates.has(i + 1)}
 					disabled={errorCell !== null && gamePhase === 'solving'}
 					on:click={() => handleInput(i + 1)}
 				>
 					{#if colorKuMode}
 						<div 
 							class="palette-color-circle"
-							class:dulled={selectedCellNotes.size > 0 && !selectedCellNotes.has(i + 1)}
+							class:dulled={selectedCellCandidates.size > 0 && !selectedCellCandidates.has(i + 1)}
 							style="background-color: {colorKuColors[i + 1]}"
 						></div>
 					{:else}

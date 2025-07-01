@@ -1,12 +1,13 @@
 <script lang="ts">
 	import Cell from '$lib/Cell.svelte';
 	import { createEventDispatcher, onMount } from 'svelte';
+	import type { GamePhase } from '$lib';
 
 	const dispatch = createEventDispatcher();
 
 	export let board: any[][];
 	export let selectedCell: { row: number; col: number } | null;
-	export let gamePhase: 'configuring' | 'solving' | 'manual';
+	export let gamePhase: GamePhase;
 	export let errorCell: { row: number; col: number } | null = null;
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
@@ -109,7 +110,7 @@
 				>
 					<Cell 
 						value={cell.value} 
-						notes={cell.notes} 
+						candidates={cell.candidates} 
 						{gamePhase} 
 						{highlightedNumber}
 						{colorKuMode}

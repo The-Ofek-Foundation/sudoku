@@ -3,27 +3,21 @@
 	import Controls from '$lib/Controls.svelte';
 	import '../app.css';
 	import { onMount } from 'svelte';
-	import sudoku from '$lib/sudoku/sudoku.js';
+	import { sudoku, type CellData, type GamePhase, type InputMode, type Difficulty, coordinatesToSquare, squareToCoordinates } from '$lib';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
 
-	type CellData = {
-		value: number | null;
-		notes: Set<number>;
-		isInitial: boolean;
-	};
-
 	let selectedCell: { row: number; col: number } | null = null;
-	let gamePhase: 'configuring' | 'solving' | 'manual' = 'configuring';
-	let inputMode: 'normal' | 'note' = 'normal';
+	let gamePhase: GamePhase = 'configuring';
+	let inputMode: InputMode = 'normal';
 	let errorMessage: string | null = null;
 	let history: CellData[][][] = [];
 	let solution: { [key: string]: string } | null = null;
 	let errorCell: { row: number; col: number } | null = null;
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
-	let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+	let difficulty: Difficulty = 'easy';
 	let gridSize = '600px'; // Default size
 	let cyclingNumber: number | null = null; // Current number when cycling with Tab
 
@@ -34,7 +28,7 @@
 				.fill(null)
 				.map(() => ({
 					value: null,
-					notes: new Set<number>(),
+					candidates: new Set<number>(),
 					isInitial: false,
 				})),
 		);
@@ -45,12 +39,12 @@
 			// Cell has a value, highlight that number
 			highlightedNumber = cellValue;
 			cyclingNumber = null; // Reset cycling for cells with values
-		} else if ((gamePhase === 'solving' || gamePhase === 'manual') && board[row][col].notes.size > 0) {
-			// Cell has no value but has notes during solving/manual phase - auto-start cycling
+		} else if ((gamePhase === 'solving' || gamePhase === 'manual') && board[row][col].candidates.size > 0) {
+			// Cell has no value but has candidates during solving/manual phase - auto-start cycling
 			highlightedNumber = null;
 			startCycling(); // Automatically start cycling with the first available number
 		} else {
-			// Cell is empty with no notes, or we're in config phase
+			// Cell is empty with no candidates, or we're in config phase
 			highlightedNumber = null;
 			cyclingNumber = null;
 		}
@@ -66,8 +60,8 @@
 		if (cell.value !== null) return [];
 		
 		if (inputMode === 'normal') {
-			// In both solving and manual mode, cycle through numbers that have notes
-			return Array.from(cell.notes).sort();
+			// In both solving and manual mode, cycle through numbers that have candidates
+			return Array.from(cell.candidates).sort();
 		} else {
 			// In note mode, cycle through all numbers 1-9 for both modes
 			return [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -204,19 +198,19 @@
 	}
 
 	function updateNotesAfterPlacement(row: number, col: number, num: number) {
-		// Remove the placed number from notes in the same row, column, and 3x3 subgrid
+		// Remove the placed number from candidates in the same row, column, and 3x3 subgrid
 		const subgridRow = Math.floor(row / 3) * 3;
 		const subgridCol = Math.floor(col / 3) * 3;
 
 		for (let i = 0; i < 9; i++) {
 			// Remove from same row
 			if (i !== col && !board[row][i].isInitial) {
-				board[row][i].notes.delete(num);
+				board[row][i].candidates.delete(num);
 			}
 			
 			// Remove from same column
 			if (i !== row && !board[i][col].isInitial) {
-				board[i][col].notes.delete(num);
+				board[i][col].candidates.delete(num);
 			}
 		}
 
@@ -224,7 +218,7 @@
 		for (let i = subgridRow; i < subgridRow + 3; i++) {
 			for (let j = subgridCol; j < subgridCol + 3; j++) {
 				if ((i !== row || j !== col) && !board[i][j].isInitial) {
-					board[i][j].notes.delete(num);
+					board[i][j].candidates.delete(num);
 				}
 			}
 		}
@@ -248,15 +242,15 @@
 				if (inputMode === 'normal' && !board[row][col].isInitial) {
 					saveToHistory();
 					board[row][col].value = num;
-					board[row][col].notes.clear();
+					board[row][col].candidates.clear();
 					// Trigger reactivity
 					board = board;
 				} else if (inputMode === 'note' && !board[row][col].isInitial) {
 					saveToHistory();
-					if (board[row][col].notes.has(num)) {
-						board[row][col].notes.delete(num);
+					if (board[row][col].candidates.has(num)) {
+						board[row][col].candidates.delete(num);
 					} else {
-						board[row][col].notes.add(num);
+						board[row][col].candidates.add(num);
 					}
 					// Trigger reactivity
 					board = board;
@@ -267,13 +261,13 @@
 				if (board[row][col].value === null) {
 					saveToHistory();
 					board[row][col].value = num;
-					board[row][col].notes.clear();
+					board[row][col].candidates.clear();
 					
 					// Check if the placement is correct
 					if (!isCorrectPlacement(row, col, num)) {
 						errorCell = { row, col };
 					} else {
-						// Automatically update notes in related cells only if correct
+						// Automatically update candidates in related cells only if correct
 						updateNotesAfterPlacement(row, col, num);
 					}
 					// Trigger reactivity
@@ -283,10 +277,10 @@
 			} else if (inputMode === 'note' && !board[row][col].isInitial) {
 				// Note mode in solving phase
 				saveToHistory();
-				if (board[row][col].notes.has(num)) {
-					board[row][col].notes.delete(num);
+				if (board[row][col].candidates.has(num)) {
+					board[row][col].candidates.delete(num);
 				} else {
-					board[row][col].notes.add(num);
+					board[row][col].candidates.add(num);
 				}
 				// Trigger reactivity
 				board = board;
@@ -329,7 +323,7 @@
 					if (board[i][j].value !== null) {
 						board[i][j].isInitial = true;
 					} else {
-						board[i][j].notes = getPossibleNumbers(i, j);
+						board[i][j].candidates = getPossibleNumbers(i, j);
 					}
 				}
 			}
@@ -342,14 +336,14 @@
 		solution = null; // No solution checking in manual mode
 		gamePhase = 'manual';
 		
-		// Mark existing numbers as initial and give all empty cells all possible notes
+		// Mark existing numbers as initial and give all empty cells all possible candidates
 		for (let i = 0; i < 9; i++) {
 			for (let j = 0; j < 9; j++) {
 				if (board[i][j].value !== null) {
 					board[i][j].isInitial = true;
 				} else {
-					// In manual mode, start with all numbers available as notes
-					board[i][j].notes = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+					// In manual mode, start with all numbers available as candidates
+					board[i][j].candidates = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 				}
 			}
 		}
@@ -360,7 +354,7 @@
 		const newBoard = board.map((row) =>
 			row.map((cell) => ({
 				...cell,
-				notes: new Set(cell.notes),
+				candidates: new Set(cell.candidates),
 			})),
 		);
 		history.push(newBoard);
@@ -375,7 +369,7 @@
 					.fill(null)
 					.map(() => ({
 						value: null,
-						notes: new Set<number>(),
+						candidates: new Set<number>(),
 						isInitial: false,
 					})),
 			);
@@ -408,7 +402,7 @@
 				board = lastBoard.map((row) =>
 					row.map((cell) => ({
 						...cell,
-						notes: new Set(cell.notes),
+						candidates: new Set(cell.candidates),
 					})),
 				);
 				// Clear error state when undoing
@@ -555,7 +549,7 @@
 		{errorCell}
 		{gridSize}
 		{highlightedNumber}
-		selectedCellNotes={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].notes : new Set()}
+		selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
 		numberCounts={getNumberCounts()}
 		onStartGame={startGame}
 		onStartManualGame={startManualGame}

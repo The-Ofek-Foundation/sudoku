@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { colorKuColors } from './colors.js';
+	import type { GamePhase } from '$lib';
 
 	export let value: number | null = null;
-	export let notes: Set<number> = new Set();
-	export let gamePhase: 'configuring' | 'solving' | 'manual' = 'configuring';
+	export let candidates: Set<number> = new Set(); // Renamed from 'notes' to match professional terminology
+	export let gamePhase: GamePhase = 'configuring';
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 
@@ -31,7 +32,7 @@
 		<div class="notes-grid">
 			{#each Array(9) as _, i}
 				<div class="note-cell" class:highlighted={highlightedNumber === i + 1} class:dulled={shouldDullNote(i + 1)}>
-					{#if notes.has(i + 1)}
+					{#if candidates.has(i + 1)}
 						{#if colorKuMode}
 							<div 
 								class="note-color-circle"
