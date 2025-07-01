@@ -294,10 +294,21 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: space-between;
-		height: 100vh;
+		min-height: 100vh;
+		min-height: 100dvh; /* Dynamic viewport height for mobile */
 		padding: 1rem;
+		padding-bottom: max(1rem, env(safe-area-inset-bottom)); /* Account for mobile safe areas */
 		box-sizing: border-box;
+		gap: 1rem;
+	}
+
+	/* Mobile-specific adjustments */
+	@media (max-width: 768px) {
+		main {
+			padding: 0.5rem;
+			padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+			gap: 0.5rem;
+		}
 	}
 
 	.error-message {

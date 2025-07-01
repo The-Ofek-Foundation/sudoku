@@ -124,6 +124,16 @@
 		max-width: 600px; /* Match the grid */
 		box-sizing: border-box;
 		margin-top: 1rem; /* Reduced from 1rem */
+		flex-shrink: 0; /* Prevent shrinking on mobile */
+	}
+
+	/* Mobile adjustments */
+	@media (max-width: 768px) {
+		.control-bar {
+			padding: 0.5rem;
+			margin-top: 0.5rem;
+			border-radius: 8px;
+		}
 	}
 	.actions-row {
 		display: flex;
@@ -170,6 +180,13 @@
 		display: grid;
 		grid-template-columns: repeat(9, 1fr);
 		gap: 0.375rem; /* Reduced from 1rem */
+	}
+
+	/* Mobile adjustments for number palette */
+	@media (max-width: 768px) {
+		.number-palette {
+			gap: 0.25rem;
+		}
 	}
 	.number-button {
 		padding: 0.5rem 0; /* Reduced padding */
@@ -371,5 +388,28 @@
 		border-color: rgba(0, 0, 0, 0.3);
 		box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 		transform: scale(1.05);
+	}
+
+	/* Mobile-specific adjustments */
+	@media (max-width: 768px) {
+		.number-button {
+			padding: 0.375rem 0;
+			font-size: 1.5rem;
+		}
+		
+		.palette-color-circle {
+			width: 24px;
+			height: 24px;
+		}
+		
+		.actions-row {
+			gap: 0.5rem;
+			margin-bottom: 0.5rem;
+		}
+		
+		.action-button {
+			padding: 0.375rem 0.75rem;
+			font-size: 0.8rem;
+		}
 	}
 </style>
