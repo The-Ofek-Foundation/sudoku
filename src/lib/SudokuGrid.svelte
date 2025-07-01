@@ -1,12 +1,18 @@
 <script lang="ts">
 	import Cell from '$lib/Cell.svelte';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	export let board: any[][];
 	export let selectedCell: { row: number; col: number } | null;
 	export let gamePhase: 'configuring' | 'solving';
+	export let errorCell: { row: number; col: number } | null = null;
+	export let highlightedNumber: number | null = null;
 
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
+		dispatch('cellSelected', { row, col });
 	}
 
 	function isHighlighted(row: number, col: number) {
@@ -41,9 +47,15 @@
 						selectedCell.row === i &&
 						selectedCell.col === j}
 					class:highlighted={isHighlighted(i, j)}
+					class:error={errorCell && errorCell.row === i && errorCell.col === j}
 					on:click={() => selectCell(i, j)}
 				>
-					<Cell value={cell.value} notes={cell.notes} {gamePhase} />
+					<Cell 
+						value={cell.value} 
+						notes={cell.notes} 
+						{gamePhase} 
+						{highlightedNumber}
+					/>
 				</button>
 			{/each}
 		{/each}
@@ -88,6 +100,16 @@
 	}
 	.cell-wrapper.selected {
 		background-color: #d8d8e8;
+	}
+	.cell-wrapper.error {
+		background-color: #ffebee;
+		border: 2px solid #f44336 !important;
+		animation: error-pulse 0.5s ease-in-out;
+	}
+	@keyframes error-pulse {
+		0% { background-color: #ffcdd2; }
+		50% { background-color: #ffebee; }
+		100% { background-color: #ffebee; }
 	}
 	.right-border {
 		border-right: 2px solid #343a40;
