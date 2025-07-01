@@ -12,12 +12,41 @@
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 	export let gridSize: string = '600px';
+	export let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' } | null = null;
+	
+	// Pre-compute all cell highlights reactively
+	$: cellHighlights = (() => {
+		// Force reactivity - accessing highlightedSquares ensures this runs when it changes
+		if (highlightedSquares) { /* dependency tracking */ }
+		const highlights: Record<string, 'primary' | 'secondary' | 'elimination' | null> = {};
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				highlights[`${i}-${j}`] = getCellHighlightType(i, j);
+			}
+		}
+		return highlights;
+	})();
 
 	let gridContainer: HTMLElement;
 
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
 		dispatch('cellSelected', { row, col });
+	}
+
+	// Helper function to convert row/col to square notation
+	function coordinatesToSquare(row: number, col: number): string {
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		return rows[row] + cols[col];
+	}
+
+	// Helper function to get highlight type for a cell
+	function getCellHighlightType(row: number, col: number): 'primary' | 'secondary' | 'elimination' | null {
+		if (!highlightedSquares) return null;
+		
+		const square = coordinatesToSquare(row, col);
+		return highlightedSquares.squares.includes(square) ? highlightedSquares.type : null;
 	}
 
 	function isHighlighted(row: number, col: number) {
@@ -114,6 +143,7 @@
 						{gamePhase} 
 						{highlightedNumber}
 						{colorKuMode}
+						hintHighlight={cellHighlights[`${i}-${j}`]}
 					/>
 				</button>
 			{/each}

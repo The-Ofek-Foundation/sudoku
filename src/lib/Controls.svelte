@@ -19,6 +19,7 @@
 	export let onUndo: () => void;
 	export let onHandleInput: (num: number) => void;
 	export let onGeneratePuzzle: () => void;
+	export let onGetHint: () => void;
 
 	let startMode: 'normal' | 'manual' = 'normal';
 
@@ -52,6 +53,10 @@
 
 	function generatePuzzle() {
 		onGeneratePuzzle();
+	}
+
+	function getHint() {
+		onGetHint();
 	}
 </script>
 
@@ -128,6 +133,22 @@
 					></path></svg
 				>
 				<span>Undo</span>
+			</button>
+			<button 
+				class="action-button hint-button" 
+				class:disabled={errorCell && gamePhase === 'solving'}
+				disabled={errorCell !== null && gamePhase === 'solving'}
+				on:click={getHint}
+				aria-label="Get hint"
+				title="Get hint"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="12" cy="12" r="3"/>
+					<path d="M12 1v6m0 6v6"/>
+					<path d="m15.14 8.86-4.28 4.28"/>
+					<path d="M9.86 15.14l4.28-4.28"/>
+				</svg>
+				<span>Hint</span>
 			</button>
 		{/if}
 		
@@ -371,6 +392,43 @@
 	.colorku-button.active:hover {
 		background-color: #218838;
 		border-color: #1e7e34;
+	}
+
+	.hint-button {
+		background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+		border-color: #ffc107;
+		color: #212529;
+		transition: all 0.2s ease;
+	}
+
+	.hint-button:hover {
+		background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%);
+		border-color: #ffb300;
+		color: #212529;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+	}
+
+	.hint-button.disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.hint-button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.hint-button:disabled:hover {
+		background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+		border-color: #ffc107;
+		color: #212529;
+		transform: none;
+		box-shadow: none;
 	}
 	.number-palette {
 		display: grid;

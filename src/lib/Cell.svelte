@@ -7,6 +7,7 @@
 	export let gamePhase: GamePhase = 'configuring';
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
+	export let hintHighlight: 'primary' | 'secondary' | 'elimination' | null = null;
 
 	function getColorForNumber(num: number): string {
 		return colorKuColors[num] || '#000000';
@@ -17,7 +18,7 @@
 	}
 </script>
 
-<div class="cell">
+<div class="cell" class:hint-primary={hintHighlight === 'primary'} class:hint-secondary={hintHighlight === 'secondary'} class:hint-elimination={hintHighlight === 'elimination'}>
 	{#if value}
 		{#if colorKuMode}
 			<div 
@@ -183,5 +184,44 @@
 		border: 2px solid #1976d2;
 		box-shadow: 0 0 4px rgba(25, 118, 210, 0.4);
 		transform: scale(1.1);
+	}
+
+	/* Hint highlighting styles */
+	.cell.hint-primary {
+		background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+		border: 2px solid #2196f3;
+		box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+		animation: hintPulse 2s ease-in-out infinite;
+	}
+
+	.cell.hint-secondary {
+		background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+		border: 2px solid #9c27b0;
+		box-shadow: 0 0 8px rgba(156, 39, 176, 0.4);
+	}
+
+	.cell.hint-elimination {
+		background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
+		border: 2px solid #ff9800;
+		box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+		animation: eliminationPulse 1.5s ease-in-out infinite;
+	}
+
+	@keyframes hintPulse {
+		0%, 100% {
+			box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+		}
+		50% {
+			box-shadow: 0 0 16px rgba(33, 150, 243, 0.8);
+		}
+	}
+
+	@keyframes eliminationPulse {
+		0%, 100% {
+			box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+		}
+		50% {
+			box-shadow: 0 0 12px rgba(255, 152, 0, 0.7);
+		}
 	}
 </style>

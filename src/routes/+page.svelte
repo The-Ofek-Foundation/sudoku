@@ -1,9 +1,11 @@
 <script lang="ts">
 	import SudokuGrid from '$lib/SudokuGrid.svelte';
 	import Controls from '$lib/Controls.svelte';
+	import HintDisplay from '$lib/HintDisplay.svelte';
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { sudoku, type CellData, type GamePhase, type InputMode, type Difficulty, coordinatesToSquare, squareToCoordinates } from '$lib';
+	import type { ComprehensiveHint, Values } from '$lib/sudoku/sudoku';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
@@ -20,6 +22,11 @@
 	let difficulty: Difficulty = 'easy';
 	let gridSize = '600px'; // Default size
 	let cyclingNumber: number | null = null; // Current number when cycling with Tab
+	
+	// Hint system state
+	let currentHint: ComprehensiveHint | null = null;
+	let showingHint: boolean = false;
+	let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' } | null = null;
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -395,6 +402,151 @@
 		errorMessage = null;
 	}
 
+	// Helper function to convert board to Values format for hint detection
+	function boardToValues(): Values {
+		const values: Values = {};
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				const square = rows[i] + cols[j];
+				if (board[i][j].value !== null) {
+					values[square] = board[i][j].value!.toString();
+				}
+			}
+		}
+		
+		return values;
+	}
+
+	// Helper function to convert board candidates to Candidates format for hint detection
+	function boardToCandidates(): Record<string, Set<string>> {
+		const candidates: Record<string, Set<string>> = {};
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				const square = rows[i] + cols[j];
+				if (board[i][j].value === null && board[i][j].candidates.size > 0) {
+					// Convert number set to string set for hint system
+					candidates[square] = new Set(
+						Array.from(board[i][j].candidates).map(n => n.toString())
+					);
+				}
+			}
+		}
+		
+		return candidates;
+	}
+
+	// Helper function to get the initial puzzle for hint detection
+	function getInitialPuzzle(): Values {
+		const values: Values = {};
+		const rows = 'ABCDEFGHI';
+		const cols = '123456789';
+		
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				const square = rows[i] + cols[j];
+				if (board[i][j].isInitial && board[i][j].value !== null) {
+					values[square] = board[i][j].value!.toString();
+				}
+			}
+		}
+		
+		return values;
+	}
+
+	function getHint() {
+		// Only available in solving and manual modes
+		if (gamePhase !== 'solving' && gamePhase !== 'manual') return;
+		
+		// Close any existing hint first
+		closeHint();
+		
+		const currentValues = boardToValues();
+		
+		let hint: ComprehensiveHint | null = null;
+		const currentCandidates = boardToCandidates();
+		
+		if (gamePhase === 'solving') {
+			// In solving mode, we have the original puzzle for verification
+			const initialPuzzle = getInitialPuzzle();
+			hint = sudoku.getComprehensiveHint(initialPuzzle, currentValues, currentCandidates);
+		} else {
+			// In manual mode, we can't verify against a solution, so we create a minimal puzzle
+			// and let the hint system work with what we have
+			hint = sudoku.getComprehensiveHint(currentValues, currentValues, currentCandidates);
+		}
+		
+		if (hint) {
+			currentHint = hint;
+			showingHint = true;
+			// Clear selection and highlighted number when showing hint
+			selectedCell = null;
+			highlightedNumber = null;
+			cyclingNumber = null;
+		}
+	}
+
+	function closeHint() {
+		showingHint = false;
+		currentHint = null;
+		highlightedSquares = null;
+	}
+
+	function handleHighlight(event: CustomEvent<{ squares: string[]; type: 'primary' | 'secondary' | 'elimination' }>) {
+		highlightedSquares = event.detail;
+	}
+
+	function handleClearHighlights() {
+		highlightedSquares = null;
+	}
+
+	function handleApplyHint() {
+		if (!currentHint) return;
+		
+		saveToHistory();
+		
+		if (currentHint.type === 'error') {
+			// Fix incorrect value
+			const { row, col } = squareToCoordinates(currentHint.square);
+			board[row][col].value = parseInt(currentHint.correctValue);
+			// Clear error state
+			errorCell = null;
+		} else if (currentHint.type === 'missing_candidate') {
+			// Add missing candidate
+			const { row, col } = squareToCoordinates(currentHint.square);
+			board[row][col].candidates.add(parseInt(currentHint.missingDigit));
+		} else if (currentHint.type === 'single_cell') {
+			// Place the digit
+			const { row, col } = squareToCoordinates(currentHint.square);
+			board[row][col].value = parseInt(currentHint.digit);
+			board[row][col].candidates.clear();
+			
+			// In solving mode, update notes in related cells
+			if (gamePhase === 'solving') {
+				updateNotesAfterPlacement(row, col, parseInt(currentHint.digit));
+			}
+		} else if (currentHint.type === 'naked_set' || currentHint.type === 'hidden_set') {
+			// Remove candidates
+			for (const square of currentHint.eliminationCells || []) {
+				const { row, col } = squareToCoordinates(square);
+				for (const digit of currentHint.eliminationDigits || []) {
+					board[row][col].candidates.delete(parseInt(digit));
+				}
+			}
+		}
+		
+		// Trigger reactivity
+		board = board;
+		
+		// Close hint display
+		closeHint();
+	}
+
 	function undo() {
 		if (history.length > 0) {
 			const lastBoard = history.pop();
@@ -469,6 +621,12 @@
 					inputMode = inputMode === 'normal' ? 'note' : 'normal';
 				} else if (event.key.toLowerCase() === 'u') {
 					undo();
+				} else if (event.key.toLowerCase() === 'h') {
+					// Get hint
+					getHint();
+				} else if (event.key === 'Escape' && showingHint) {
+					// Close hint
+					closeHint();
 				}
 			}
 			
@@ -533,6 +691,7 @@
 		{errorCell} 
 		{highlightedNumber}
 		{colorKuMode}
+		{highlightedSquares}
 		bind:gridSize
 		on:cellSelected={(e) => updateHighlightedNumber(e.detail.row, e.detail.col)}
 	/>
@@ -541,23 +700,35 @@
 		<div class="error-message">{errorMessage}</div>
 	{/if}
 
-	<Controls
-		bind:inputMode
-		bind:colorKuMode
-		bind:difficulty
-		{gamePhase}
-		{errorCell}
-		{gridSize}
-		{highlightedNumber}
-		selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
-		numberCounts={getNumberCounts()}
-		onStartGame={startGame}
-		onStartManualGame={startManualGame}
-		onHandleDelete={handleDelete}
-		onUndo={undo}
-		onGeneratePuzzle={generatePuzzle}
-		onHandleInput={handleInput}
-	/>
+	{#if showingHint && currentHint}
+		<HintDisplay
+			{gridSize}
+			hint={currentHint}
+			on:close={closeHint}
+			on:highlight={handleHighlight}
+			on:clearHighlights={handleClearHighlights}
+			on:applyHint={handleApplyHint}
+		/>
+	{:else}
+		<Controls
+			bind:inputMode
+			bind:colorKuMode
+			bind:difficulty
+			{gamePhase}
+			{errorCell}
+			{gridSize}
+			{highlightedNumber}
+			selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
+			numberCounts={getNumberCounts()}
+			onStartGame={startGame}
+			onStartManualGame={startManualGame}
+			onHandleDelete={handleDelete}
+			onUndo={undo}
+			onGeneratePuzzle={generatePuzzle}
+			onHandleInput={handleInput}
+			onGetHint={getHint}
+		/>
+	{/if}
 </main>
 
 <style>
