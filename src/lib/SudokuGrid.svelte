@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Cell from '$lib/Cell.svelte';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import type { GamePhase } from '$lib';
 
-	const dispatch = createEventDispatcher();
+	// Callback props instead of createEventDispatcher
+	export let onCellSelected: (data: { row: number; col: number }) => void;
 
 	export let board: any[][];
 	export let selectedCell: { row: number; col: number } | null;
@@ -12,16 +13,16 @@
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 	export let gridSize: string = '600px';
-	export let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' } | null = null;
+	export let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[] | null = null;
 	
 	// Pre-compute all cell highlights reactively
 	$: cellHighlights = (() => {
 		// Force reactivity - accessing highlightedSquares ensures this runs when it changes
 		if (highlightedSquares) { /* dependency tracking */ }
-		const highlights: Record<string, 'primary' | 'secondary' | 'elimination' | null> = {};
+		const highlights: Record<string, Array<'primary' | 'secondary' | 'elimination'>> = {};
 		for (let i = 0; i < 9; i++) {
 			for (let j = 0; j < 9; j++) {
-				highlights[`${i}-${j}`] = getCellHighlightType(i, j);
+				highlights[`${i}-${j}`] = getCellHighlightTypes(i, j);
 			}
 		}
 		return highlights;
@@ -31,7 +32,7 @@
 
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
-		dispatch('cellSelected', { row, col });
+		onCellSelected({ row, col });
 	}
 
 	// Helper function to convert row/col to square notation
@@ -41,12 +42,20 @@
 		return rows[row] + cols[col];
 	}
 
-	// Helper function to get highlight type for a cell
-	function getCellHighlightType(row: number, col: number): 'primary' | 'secondary' | 'elimination' | null {
-		if (!highlightedSquares) return null;
+	// Helper function to get highlight types for a cell (can be multiple)
+	function getCellHighlightTypes(row: number, col: number): Array<'primary' | 'secondary' | 'elimination'> {
+		if (!highlightedSquares) return [];
 		
 		const square = coordinatesToSquare(row, col);
-		return highlightedSquares.squares.includes(square) ? highlightedSquares.type : null;
+		const types: Array<'primary' | 'secondary' | 'elimination'> = [];
+		
+		for (const highlight of highlightedSquares) {
+			if (highlight.squares.includes(square)) {
+				types.push(highlight.type);
+			}
+		}
+		
+		return types;
 	}
 
 	function isHighlighted(row: number, col: number) {

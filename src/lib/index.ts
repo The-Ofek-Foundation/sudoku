@@ -2,7 +2,9 @@
 
 // Export sudoku solver and types for use throughout the application
 export { default as sudoku } from './sudoku/sudoku';
+export { getTechniqueDifficulty, difficultyToCategory } from './sudoku/sudoku';
 export type { Square, Digit, Row, Column, Unit, Grid, Values, Candidates } from './sudoku/sudoku';
+export type { ComprehensiveHint, ErrorHint, MissingCandidateHint, SingleCellHint, NakedSetHint, HiddenSetHint, IntersectionRemovalHint } from './sudoku/sudoku';
 import type { Square, Digit } from './sudoku/sudoku';
 
 // Define shared UI types that work with the sudoku solver types

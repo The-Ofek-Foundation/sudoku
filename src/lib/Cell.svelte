@@ -7,7 +7,7 @@
 	export let gamePhase: GamePhase = 'configuring';
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
-	export let hintHighlight: 'primary' | 'secondary' | 'elimination' | null = null;
+	export let hintHighlight: Array<'primary' | 'secondary' | 'elimination'> | null = null;
 
 	function getColorForNumber(num: number): string {
 		return colorKuColors[num] || '#000000';
@@ -18,7 +18,10 @@
 	}
 </script>
 
-<div class="cell" class:hint-primary={hintHighlight === 'primary'} class:hint-secondary={hintHighlight === 'secondary'} class:hint-elimination={hintHighlight === 'elimination'}>
+<div class="cell" 
+	class:hint-primary={hintHighlight && hintHighlight.includes('primary')} 
+	class:hint-secondary={hintHighlight && hintHighlight.includes('secondary')} 
+	class:hint-elimination={hintHighlight && hintHighlight.includes('elimination')}>
 	{#if value}
 		{#if colorKuMode}
 			<div 
@@ -205,6 +208,35 @@
 		border: 2px solid #ff9800;
 		box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
 		animation: eliminationPulse 1.5s ease-in-out infinite;
+	}
+
+	/* Combinations for multiple highlight types */
+	.cell.hint-primary.hint-secondary {
+		background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 50%, #bbdefb 100%);
+		border: 2px solid #7b1fa2; /* Blend of primary and secondary colors */
+		box-shadow: 0 0 8px rgba(33, 150, 243, 0.4), 0 0 8px rgba(156, 39, 176, 0.4);
+		animation: hintPulse 2s ease-in-out infinite;
+	}
+
+	.cell.hint-primary.hint-elimination {
+		background: linear-gradient(135deg, #e3f2fd 0%, #fff3e0 50%, #ffcc02 100%);
+		border: 2px solid #ff5722; /* Blend of primary and elimination colors */
+		box-shadow: 0 0 8px rgba(33, 150, 243, 0.4), 0 0 8px rgba(255, 152, 0, 0.4);
+		animation: hintPulse 2s ease-in-out infinite, eliminationPulse 1.5s ease-in-out infinite;
+	}
+
+	.cell.hint-secondary.hint-elimination {
+		background: linear-gradient(135deg, #f3e5f5 0%, #fff3e0 50%, #ffcc02 100%);
+		border: 2px solid #ff6f00; /* Blend of secondary and elimination colors */
+		box-shadow: 0 0 8px rgba(156, 39, 176, 0.4), 0 0 8px rgba(255, 152, 0, 0.4);
+		animation: eliminationPulse 1.5s ease-in-out infinite;
+	}
+
+	.cell.hint-primary.hint-secondary.hint-elimination {
+		background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 33%, #fff3e0 66%, #ffcc02 100%);
+		border: 2px solid #e65100; /* Blend of all three colors */
+		box-shadow: 0 0 8px rgba(33, 150, 243, 0.4), 0 0 8px rgba(156, 39, 176, 0.4), 0 0 8px rgba(255, 152, 0, 0.4);
+		animation: hintPulse 2s ease-in-out infinite, eliminationPulse 1.5s ease-in-out infinite;
 	}
 
 	@keyframes hintPulse {

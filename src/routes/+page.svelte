@@ -26,7 +26,8 @@
 	// Hint system state
 	let currentHint: ComprehensiveHint | null = null;
 	let showingHint: boolean = false;
-	let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' } | null = null;
+	let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[] | null = null;
+	let hintDisplayRef: HintDisplay; // Reference to HintDisplay component
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -497,8 +498,17 @@
 		highlightedSquares = null;
 	}
 
-	function handleHighlight(event: CustomEvent<{ squares: string[]; type: 'primary' | 'secondary' | 'elimination' }>) {
-		highlightedSquares = event.detail;
+	function handleHighlight(data: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }) {
+		if (!highlightedSquares) {
+			highlightedSquares = [data];
+		} else {
+			// Remove any existing highlight of the same type
+			highlightedSquares = highlightedSquares.filter(h => h.type !== data.type);
+			// Add the new highlight
+			highlightedSquares.push(data);
+			// Trigger reactivity
+			highlightedSquares = highlightedSquares;
+		}
 	}
 
 	function handleClearHighlights() {
@@ -537,6 +547,12 @@
 				for (const digit of currentHint.eliminationDigits || []) {
 					board[row][col].candidates.delete(parseInt(digit));
 				}
+			}
+		} else if (currentHint.type === 'intersection_removal') {
+			// Remove candidates from elimination cells
+			for (const square of currentHint.eliminationCells || []) {
+				const { row, col } = squareToCoordinates(square);
+				board[row][col].candidates.delete(parseInt(currentHint.digit));
 			}
 		}
 		
@@ -622,8 +638,14 @@
 				} else if (event.key.toLowerCase() === 'u') {
 					undo();
 				} else if (event.key.toLowerCase() === 'h') {
-					// Get hint
-					getHint();
+					// Get hint or advance hint stage if already showing
+					if (showingHint && hintDisplayRef) {
+						// Advance to next hint stage
+						hintDisplayRef.advanceStage();
+					} else {
+						// Get new hint
+						getHint();
+					}
 				} else if (event.key === 'Escape' && showingHint) {
 					// Close hint
 					closeHint();
@@ -693,7 +715,7 @@
 		{colorKuMode}
 		{highlightedSquares}
 		bind:gridSize
-		on:cellSelected={(e) => updateHighlightedNumber(e.detail.row, e.detail.col)}
+		onCellSelected={(data) => updateHighlightedNumber(data.row, data.col)}
 	/>
 
 	{#if errorMessage}
@@ -702,12 +724,14 @@
 
 	{#if showingHint && currentHint}
 		<HintDisplay
+			bind:this={hintDisplayRef}
 			{gridSize}
+			{colorKuMode}
 			hint={currentHint}
-			on:close={closeHint}
-			on:highlight={handleHighlight}
-			on:clearHighlights={handleClearHighlights}
-			on:applyHint={handleApplyHint}
+			onClose={closeHint}
+			onHighlight={handleHighlight}
+			onClearHighlights={handleClearHighlights}
+			onApplyHint={handleApplyHint}
 		/>
 	{:else}
 		<Controls

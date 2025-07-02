@@ -1,21 +1,37 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import type { ComprehensiveHint } from './sudoku/sudoku';
+	import { difficultyToCategory } from '$lib';
+	import { colorKuColors } from './colors.js';
 	
 	export let hint: ComprehensiveHint;
 	export let gridSize: string;
+	export let colorKuMode: boolean = false;
 	
-	const dispatch = createEventDispatcher<{
-		close: void;
-		highlight: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' };
-		clearHighlights: void;
-		applyHint: void;
-	}>();
+	// Callback props instead of createEventDispatcher
+	export let onClose: () => void;
+	export let onHighlight: (data: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }) => void;
+	export let onClearHighlights: () => void;
+	export let onApplyHint: () => void;
 	
 	let stage: 1 | 2 | 3 = 1; // Start at stage 1 (Show Technique)
 	
+	// Export function to advance stage for external control (e.g., keyboard shortcuts)
+	export function advanceStage() {
+		if (stage === 1) {
+			showLocation();
+		} else if (stage === 2) {
+			showSolution();
+		} else {
+			// Already at stage 3, apply the hint
+			onApplyHint();
+		}
+	}
+	
 	// Reactive button text
 	$: buttonText = stage === 1 ? 'Show Location' : stage === 2 ? 'Show Solution' : 'Apply Hint';
+	
+	// Reactive description text - pass stage as parameter to make dependency explicit
+	$: stageDescription = getStageDescription(stage);
 	
 	// Helper function to get technique display name
 	function getTechniqueDisplayName(technique: string): string {
@@ -23,36 +39,24 @@
 			'incorrect_value': 'Incorrect Value',
 			'missing_candidate': 'Missing Candidate',
 			'last_remaining_in_box': 'Last Remaining in Box',
-			'last_remaining_in_row': 'Last Remaining in Row',
-			'last_remaining_in_column': 'Last Remaining in Column',
+			'last_remaining_in_row': 'Last Remaining in Column', // Flipped for UI display
+			'last_remaining_in_column': 'Last Remaining in Row', // Flipped for UI display
 			'naked_single': 'Naked Single',
 			'naked_pairs': 'Naked Pairs',
 			'naked_triples': 'Naked Triples',
 			'naked_quads': 'Naked Quads',
 			'hidden_pairs': 'Hidden Pairs',
 			'hidden_triples': 'Hidden Triples',
-			'hidden_quads': 'Hidden Quads'
+			'hidden_quads': 'Hidden Quads',
+			'pointing_pairs': 'Pointing Pairs',
+			'box_line_reduction': 'Box/Line Reduction'
 		};
 		return names[technique] || technique;
 	}
 	
-	// Helper function to get technique difficulty
-	function getTechniqueDifficulty(technique: string): 'beginner' | 'easy' | 'medium' | 'hard' {
-		const difficulties: Record<string, 'beginner' | 'easy' | 'medium' | 'hard'> = {
-			'incorrect_value': 'beginner',
-			'missing_candidate': 'beginner',
-			'last_remaining_in_box': 'beginner',
-			'last_remaining_in_row': 'beginner',
-			'last_remaining_in_column': 'beginner',
-			'naked_single': 'easy',
-			'naked_pairs': 'medium',
-			'naked_triples': 'medium',
-			'naked_quads': 'hard',
-			'hidden_pairs': 'medium',
-			'hidden_triples': 'hard',
-			'hidden_quads': 'hard'
-		};
-		return difficulties[technique] || 'medium';
+	// Helper function to get technique difficulty category
+	function getTechniqueDifficultyCategory(): 'beginner' | 'easy' | 'medium' | 'hard' {
+		return difficultyToCategory(hint.difficulty);
 	}
 	
 	// Helper function to convert square notation to display format
@@ -68,62 +72,198 @@
 		return squares.slice(0, -1).map(formatSquare).join(', ') + ', and ' + formatSquare(squares[squares.length - 1]);
 	}
 	
+	// Helper function to format a number/color for display
+	function formatDigit(digit: string): string {
+		if (colorKuMode) {
+			const digitNum = parseInt(digit);
+			return `<span style="display: inline-flex; align-items: center; width: 16px; height: 16px; border-radius: 50%; background-color: ${colorKuColors[digitNum]}; border: 1px solid rgba(0,0,0,0.3);"></span>`;
+		}
+		return digit;
+	}
+	
+	// Helper function to format multiple digits
+	function formatDigits(digits: string[]): string {
+		if (colorKuMode) {
+			return digits.map(d => formatDigit(d)).join(', ');
+		}
+		return digits.join(', ');
+	}
+	
+	// Helper function to get the word "number" or "color"
+	function getDigitWord(): string {
+		return colorKuMode ? 'color' : 'number';
+	}
+	
+	// Helper function to get the plural word "numbers" or "colors"  
+	function getDigitWordPlural(): string {
+		return colorKuMode ? 'colors' : 'numbers';
+	}
+	
 	// Stage progression functions
 	function showLocation() {
 		stage = 2;
 		// Highlight the relevant squares
-		if (hint.type === 'error' || hint.type === 'missing_candidate' || hint.type === 'single_cell') {
-			dispatch('highlight', { squares: [hint.square], type: 'primary' });
+		if (hint.type === 'error' || hint.type === 'missing_candidate') {
+			onHighlight({ squares: [hint.square], type: 'primary' });
+		} else if (hint.type === 'single_cell') {
+			// For "last remaining" techniques, highlight the entire unit first
+			if (hint.technique.includes('last_remaining') && hint.unit) {
+				onHighlight({ squares: hint.unit, type: 'secondary' });
+			} else {
+				// For naked singles, just highlight the cell
+				onHighlight({ squares: [hint.square], type: 'primary' });
+			}
 		} else if (hint.type === 'naked_set' || hint.type === 'hidden_set') {
-			dispatch('highlight', { squares: hint.squares, type: 'primary' });
+			// For sets, highlight the containing unit to show context
+			if (hint.unit) {
+				onHighlight({ squares: hint.unit, type: 'secondary' });
+				onHighlight({ squares: hint.squares, type: 'primary' });
+			} else {
+				onHighlight({ squares: hint.squares, type: 'primary' });
+			}
+		} else if (hint.type === 'intersection_removal') {
+			// For intersection removal, highlight both units to show the context
+			if (hint.primaryUnit && hint.secondaryUnit) {
+				if (hint.technique === 'pointing_pairs') {
+					// Pointing pairs: highlight only the specific cells where the digit is constrained
+					// Show the box as context and the pointing cells as primary
+					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
+					onHighlight({ squares: hint.squares, type: 'primary' });
+				} else if (hint.technique === 'box_line_reduction') {
+					// Box/line reduction: digit in row/column restricted to box  
+					// For stage 2, show both the line and the box to provide full context
+					onHighlight({ squares: hint.primaryUnit, type: 'primary' }); // The line
+					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' }); // The box
+				} else {
+					// Fallback
+					onHighlight({ squares: hint.primaryUnit, type: 'primary' });
+					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
+				}
+			} else {
+				onHighlight({ squares: hint.squares, type: 'primary' });
+			}
 		}
 	}
 	
 	function showSolution() {
 		stage = 3;
 		// Highlight all relevant squares with different types
-		if (hint.type === 'error' || hint.type === 'missing_candidate' || hint.type === 'single_cell') {
-			dispatch('highlight', { squares: [hint.square], type: 'primary' });
+		if (hint.type === 'error' || hint.type === 'missing_candidate') {
+			onHighlight({ squares: [hint.square], type: 'primary' });
+		} else if (hint.type === 'single_cell') {
+			// For "last remaining" techniques, now highlight the specific cell as primary
+			// and keep the unit as secondary
+			if (hint.technique.includes('last_remaining') && hint.unit) {
+				onHighlight({ squares: hint.unit, type: 'secondary' });
+				onHighlight({ squares: [hint.square], type: 'primary' });
+			} else {
+				// For naked singles, just highlight the cell
+				onHighlight({ squares: [hint.square], type: 'primary' });
+			}
 		} else if (hint.type === 'naked_set' || hint.type === 'hidden_set') {
-			dispatch('highlight', { squares: hint.squares, type: 'primary' });
+			// Show the containing unit, the set cells, and elimination cells
+			if (hint.unit) {
+				onHighlight({ squares: hint.unit, type: 'secondary' });
+			}
+			onHighlight({ squares: hint.squares, type: 'primary' });
 			if (hint.eliminationCells.length > 0) {
-				dispatch('highlight', { squares: hint.eliminationCells, type: 'elimination' });
+				onHighlight({ squares: hint.eliminationCells, type: 'elimination' });
+			}
+		} else if (hint.type === 'intersection_removal') {
+			// Show the units, the intersection, and elimination cells
+			if (hint.primaryUnit && hint.secondaryUnit) {
+				if (hint.technique === 'pointing_pairs') {
+					// Pointing pairs: show both units as context, intersection as primary
+					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
+					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
+					onHighlight({ squares: hint.squares, type: 'primary' }); // The intersection
+				} else if (hint.technique === 'box_line_reduction') {
+					// Box/line reduction: show line as primary, box as secondary, intersection highlighted within line
+					onHighlight({ squares: hint.primaryUnit, type: 'primary' }); // The line
+					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' }); // The box
+					// Don't separately highlight intersection since it's part of the primary line
+				} else {
+					// Fallback
+					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
+					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
+					onHighlight({ squares: hint.squares, type: 'primary' }); // The intersection
+				}
+			} else {
+				onHighlight({ squares: hint.squares, type: 'primary' });
+			}
+			if (hint.eliminationCells.length > 0) {
+				onHighlight({ squares: hint.eliminationCells, type: 'elimination' });
 			}
 		}
 	}
 	
 	function closeHint() {
-		dispatch('clearHighlights');
-		dispatch('close');
+		onClearHighlights();
+		onClose();
 	}
 	
 	// Get description based on stage
-	function getStageDescription(): string {
-		if (stage === 1) {
-			// Stage 1: Just the technique type
-			const difficulty = getTechniqueDifficulty(hint.technique);
-			const difficultyColors = {
-				beginner: '🟢',
-				easy: '🔵', 
-				medium: '🟡',
-				hard: '🔴'
+	function getStageDescription(currentStage: typeof stage): string {
+		if (currentStage === 1) {
+			// Stage 1: Explain what the technique is
+			const explanations: Record<string, string> = {
+				'incorrect_value': `An incorrect value was detected. This value violates Sudoku rules by appearing twice in the same row, column, or box.`,
+				'missing_candidate': `A cell is missing a valid candidate ${getDigitWord()}. This ${getDigitWord()} should be penciled in as a possibility based on the current board state.`,
+				'last_remaining_in_box': `One of the ${getDigitWordPlural()} has only one possible location remaining in a box. This ${getDigitWord()} must go in that specific cell.`,
+				'last_remaining_in_row': `One of the ${getDigitWordPlural()} has only one possible location remaining in a column. This ${getDigitWord()} must go in that specific cell.`,
+				'last_remaining_in_column': `One of the ${getDigitWordPlural()} has only one possible location remaining in a row. This ${getDigitWord()} must go in that specific cell.`,
+				'naked_single': `A cell has only one possible candidate remaining. This is the only ${getDigitWord()} that can go in this cell.`,
+				'naked_pairs': `Two cells in the same unit contain the exact same two candidates. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
+				'naked_triples': `Three cells in the same unit share the same three candidates among them. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
+				'naked_quads': `Four cells in the same unit share the same four candidates among them. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
+				'hidden_pairs': `Two ${getDigitWordPlural()} can only appear in the same two cells within a unit. All other candidates can be eliminated from these cells.`,
+				'hidden_triples': `Three ${getDigitWordPlural()} can only appear in the same three cells within a unit. All other candidates can be eliminated from these cells.`,
+				'hidden_quads': `Four ${getDigitWordPlural()} can only appear in the same four cells within a unit. All other candidates can be eliminated from these cells.`,
+				'pointing_pairs': `A ${getDigitWord()} in a box is restricted to a single row or column. This eliminates that ${getDigitWord()} from other cells in that row/column.`,
+				'box_line_reduction': `A ${getDigitWord()} in a row or column is restricted to a single box. This eliminates that ${getDigitWord()} from other cells in that box.`
 			};
-			return `A ${getTechniqueDisplayName(hint.technique)} has been found ${difficultyColors[difficulty]}`;
-		} else if (stage === 2) {
-			// Stage 2: Show location but not specific action
+			
+			return explanations[hint.technique] || `A ${getTechniqueDisplayName(hint.technique)} technique has been found.`;
+		} else if (currentStage === 2) {
+			// Stage 2: Show where the technique applies with more context
 			if (hint.type === 'error') {
-				return `Found an incorrect value in cell ${formatSquare(hint.square)}`;
+				return `Cell ${formatSquare(hint.square)} contains ${formatDigit(hint.actualValue)}, but this creates a conflict. Look for the duplicate ${formatDigit(hint.actualValue)} in the same row, column, or box.`;
 			} else if (hint.type === 'missing_candidate') {
-				return `Cell ${formatSquare(hint.square)} is missing a candidate`;
+				return `Cell ${formatSquare(hint.square)} should have ${formatDigit(hint.missingDigit)} as a possible candidate. Check why this ${getDigitWord()} isn't ruled out by the current values.`;
 			} else if (hint.type === 'single_cell') {
-				return `Cell ${formatSquare(hint.square)} can only contain one value`;
+				if (hint.technique.includes('last_remaining')) {
+					// Fix the row/column mapping - seems to be flipped in the UI
+					let unit;
+					if (hint.technique.includes('box')) {
+						unit = 'box';
+					} else if (hint.technique.includes('row')) {
+						unit = 'column'; // Flipped: "last_remaining_in_row" actually means column in UI
+					} else {
+						unit = 'row'; // Flipped: "last_remaining_in_column" actually means row in UI
+					}
+					return `${formatDigit(hint.digit)} has only one possible location in its ${unit} - cell ${formatSquare(hint.square)}. This is the only place it can go.`;
+				} else {
+					return `Cell ${formatSquare(hint.square)} has been reduced to only one possible candidate: ${formatDigit(hint.digit)}. This is the only value that can fit.`;
+				}
 			} else if (hint.type === 'naked_set') {
-				return `${getTechniqueDisplayName(hint.technique)} found in cells ${formatSquares(hint.squares)}`;
+				const setSize = hint.technique.includes('pairs') ? 'pair' : hint.technique.includes('triples') ? 'triple' : 'quad';
+				const unitType = hint.unitType;
+				return `A naked ${setSize} of ${getDigitWordPlural()} ${formatDigits(hint.digits)} exists in cells ${formatSquares(hint.squares)} in this ${unitType}. These ${getDigitWordPlural()} are locked to these cells only.`;
 			} else if (hint.type === 'hidden_set') {
-				return `${getTechniqueDisplayName(hint.technique)} found in cells ${formatSquares(hint.squares)}`;
+				const setSize = hint.technique.includes('pairs') ? 'pair' : hint.technique.includes('triples') ? 'triple' : 'quad';
+				const unitType = hint.unitType;
+				return `A hidden ${setSize} of ${getDigitWordPlural()} ${formatDigits(hint.digits)} can only appear in cells ${formatSquares(hint.squares)} within this ${unitType}.`;
+			} else if (hint.type === 'intersection_removal') {
+				if (hint.technique === 'pointing_pairs') {
+					const cellCount = hint.squares.length === 2 ? 'pair' : 'triple';
+					return `${formatDigit(hint.digit)} in the highlighted box is restricted to only these ${hint.squares.length} cells (${formatSquares(hint.squares)}), creating a pointing ${cellCount}.`;
+				} else {
+					const unitType = hint.primaryUnitType === 'column' ? 'row' : 'column'; // Flip terminology to match visual
+					return `${formatDigit(hint.digit)} in the highlighted ${unitType} is restricted to only one box, creating a box/line reduction opportunity.`;
+				}
 			}
 		} else {
-			// Stage 3: Show full description with specific action
+			// Stage 3: Show the full technical description with the action
 			return hint.description;
 		}
 		return '';
@@ -139,7 +279,7 @@
 		} else if (stage === 2) {
 			showSolution();
 		} else {
-			dispatch('applyHint');
+			onApplyHint();
 		}
 	}
 </script>
@@ -148,12 +288,13 @@
 	<div class="hint-header">
 		<div class="hint-title">
 			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hint-icon">
-				<path d="M9 12l2 2 4-4"/>
-				<circle cx="12" cy="12" r="9"/>
+				<path d="M9 21h6"/>
+				<path d="M12 17c-3.314 0-6-2.686-6-6 0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6z"/>
+				<path d="M10 19h4"/>
 			</svg>
 			<span class="technique-name">{getTechniqueDisplayName(hint.technique)}</span>
-			<div class="difficulty-badge difficulty-{getTechniqueDifficulty(hint.technique)}">
-				{getTechniqueDifficulty(hint.technique)}
+			<div class="difficulty-badge difficulty-{getTechniqueDifficultyCategory()}">
+				{getTechniqueDifficultyCategory()}
 			</div>
 		</div>
 		<button class="close-button" on:click={closeHint} aria-label="Close hint">
@@ -166,7 +307,7 @@
 	
 	<div class="hint-body">
 		<div class="hint-description">
-			{getStageDescription()}
+			{@html stageDescription}
 		</div>
 		
 		{#if stage === 3}
@@ -174,23 +315,34 @@
 				{#if hint.type === 'error'}
 					<div class="action-item">
 						<span class="action-type error">❌ Correct value:</span>
-						<span class="action-value">{hint.correctValue}</span>
+						<span class="action-value">{@html formatDigit(hint.correctValue)}</span>
 					</div>
 				{:else if hint.type === 'missing_candidate'}
 					<div class="action-item">
 						<span class="action-type add">➕ Add candidate:</span>
-						<span class="action-value">{hint.missingDigit}</span>
+						<span class="action-value">{@html formatDigit(hint.missingDigit)}</span>
 					</div>
 				{:else if hint.type === 'single_cell'}
 					<div class="action-item">
-						<span class="action-type place">✅ Place digit:</span>
-						<span class="action-value">{hint.digit}</span>
+						<span class="action-type place">✅ Place {getDigitWord()}:</span>
+						<span class="action-value">{@html formatDigit(hint.digit)}</span>
 					</div>
 				{:else if hint.type === 'naked_set' || hint.type === 'hidden_set'}
 					{#if hint.eliminationCells.length > 0}
 						<div class="action-item">
 							<span class="action-type remove">🗑️ Remove candidates:</span>
-							<span class="action-value">{hint.eliminationDigits.join(', ')}</span>
+							<span class="action-value">{@html formatDigits(hint.eliminationDigits)}</span>
+						</div>
+						<div class="action-item">
+							<span class="action-type from">📍 From cells:</span>
+							<span class="action-value">{formatSquares(hint.eliminationCells)}</span>
+						</div>
+					{/if}
+				{:else if hint.type === 'intersection_removal'}
+					{#if hint.eliminationCells.length > 0}
+						<div class="action-item">
+							<span class="action-type remove">🗑️ Remove candidate:</span>
+							<span class="action-value">{@html formatDigit(hint.digit)}</span>
 						</div>
 						<div class="action-item">
 							<span class="action-type from">📍 From cells:</span>
@@ -392,6 +544,9 @@
 		padding: 0.25rem 0.5rem;
 		border-radius: 4px;
 		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
 	}
 	
 	.hint-actions {
