@@ -2,10 +2,14 @@
 	import SudokuGrid from '$lib/SudokuGrid.svelte';
 	import Controls from '$lib/Controls.svelte';
 	import HintDisplay from '$lib/HintDisplay.svelte';
+	import ShareModal from '$lib/ShareModal.svelte';
+	import ChallengeStart from '$lib/ChallengeStart.svelte';
 	import '../app.css';
 	import { onMount } from 'svelte';
+	import { replaceState } from '$app/navigation';
 	import { sudoku, type CellData, type GamePhase, type InputMode, type Difficulty, coordinatesToSquare, squareToCoordinates } from '$lib';
 	import type { ComprehensiveHint, Values } from '$lib/sudoku/sudoku';
+	import { encodePuzzle, generateShareText, createShareableUrl, getChallengeFromUrl, type PuzzleShare } from '$lib/share.js';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
@@ -33,6 +37,13 @@
 	let timerStartTime: number | null = null;
 	let timerFinalTime: number | null = null;
 	let isTimerRunning: boolean = false;
+
+	// Share/Challenge state
+	let showShareModal: boolean = false;
+	let shareText: string = '';
+	let shareUrl: string = '';
+	let challengeData: PuzzleShare | null = null;
+	let showChallengeStart: boolean = false;
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -310,6 +321,8 @@
 							// Stop timer and record final time
 							isTimerRunning = false;
 							timerFinalTime = Date.now() - timerStartTime!;
+							// Show share modal after completion
+							showShareModalForCompletion();
 						}
 						// Trigger reactivity
 						board = board;
@@ -679,7 +692,151 @@
 		}
 	}
 
+	// Sharing and Challenge Functions
+	function showShareModalForCompletion() {
+		const encoded = encodePuzzle(board, difficulty, timerFinalTime || undefined, colorKuMode);
+		shareText = generateShareText(timerFinalTime || undefined, difficulty);
+		shareUrl = createShareableUrl(encoded);
+		showShareModal = true;
+	}
+
+	function showShareModalForConfiguration() {
+		// Validate the puzzle first (like start game does)
+		const boardStr = board
+			.map((row) => row.map((cell) => cell.value || '.').join(''))
+			.join('');
+
+		// Check if puzzle has a solution and is unique
+		const solutionResult = sudoku.solve(boardStr);
+
+		if (solutionResult === false) {
+			errorMessage = 'This puzzle has no solution and cannot be shared.';
+			return;
+		} else if (!sudoku.isUnique(boardStr)) {
+			errorMessage = 'This puzzle has multiple solutions and cannot be shared.';
+			return;
+		} else {
+			// Clear any existing error message
+			errorMessage = null;
+			
+			// Generate share data
+			const encoded = encodePuzzle(board, difficulty, undefined, colorKuMode);
+			shareText = generateShareText(undefined, difficulty);
+			shareUrl = createShareableUrl(encoded);
+			showShareModal = true;
+		}
+	}
+
+	function closeShareModal() {
+		showShareModal = false;
+	}
+
+	function loadChallengeBoard(puzzleData: PuzzleShare) {
+		// Clear the current board
+		board = Array(9)
+			.fill(null)
+			.map(() =>
+				Array(9)
+					.fill(null)
+					.map(() => ({
+						value: null,
+						candidates: new Set<number>(),
+						isInitial: false,
+					})),
+			);
+
+		// Load the puzzle configuration
+		for (let i = 0; i < 81; i++) {
+			const row = Math.floor(i / 9);
+			const col = i % 9;
+			const char = puzzleData.puzzle[i];
+			
+			if (char !== '.') {
+				const value = parseInt(char);
+				if (value >= 1 && value <= 9) {
+					board[row][col].value = value;
+					board[row][col].isInitial = true;
+				}
+			}
+		}
+
+		// Set difficulty if provided
+		if (puzzleData.difficulty) {
+			difficulty = puzzleData.difficulty as Difficulty;
+		}
+
+		// Set colorKu mode if provided (default to false if not specified)
+		colorKuMode = puzzleData.colorKuMode || false;
+
+		// Trigger reactivity
+		board = board;
+		errorMessage = null;
+	}
+
+	function startChallengeFromUrl() {
+		if (!challengeData) return;
+		
+		// Load the challenge board first
+		loadChallengeBoard(challengeData);
+		
+		// Now that the board is loaded, validate it and start competition mode
+		const boardStr = board
+			.map((row) => row.map((cell) => cell.value || '.').join(''))
+			.join('');
+
+		console.log('Challenge board string:', boardStr); // Debug log
+
+		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
+		const solutionResult = sudoku.solve(boardStr);
+
+		if (solutionResult === false) {
+			errorMessage = 'This challenge puzzle has no solution.';
+			showChallengeStart = false; // Show the main interface
+			return;
+		} else if (!sudoku.isUnique(boardStr)) {
+			errorMessage = 'This challenge puzzle has multiple solutions.';
+			showChallengeStart = false; // Show the main interface
+			return;
+		} else {
+			errorMessage = null;
+			solution = solutionResult; // Store the solution for verification
+			gamePhase = 'competition';
+			
+			// Start the timer
+			timerStartTime = Date.now();
+			timerFinalTime = null;
+			isTimerRunning = true;
+			
+			// Initialize candidates for empty cells
+			for (let i = 0; i < 9; i++) {
+				for (let j = 0; j < 9; j++) {
+					if (board[i][j].value === null) {
+						board[i][j].candidates = getPossibleNumbers(i, j);
+					}
+				}
+			}
+			saveToHistory();
+		}
+		
+		// Hide challenge start screen
+		showChallengeStart = false;
+		
+		// Clear challenge data and URL
+		challengeData = null;
+		if (typeof window !== 'undefined') {
+			const url = new URL(window.location.href);
+			url.searchParams.delete('challenge');
+			replaceState(url, {});
+		}
+	}
+
 	onMount(() => {
+		// Check if this is a shared challenge
+		challengeData = getChallengeFromUrl();
+		if (challengeData) {
+			showChallengeStart = true;
+		}
+
 		const handleKeyDown = (event: KeyboardEvent) => {
 			const num = parseInt(event.key);
 			if (!isNaN(num) && num >= 1 && num <= 9) {
@@ -712,8 +869,8 @@
 						placeCyclingNumber();
 					}
 				}
-			} else if (event.key.toLowerCase() === 'c') {
-				// Toggle ColorKu mode (available in all phases)
+			} else if (event.key.toLowerCase() === 'c' && !event.ctrlKey) {
+				// Toggle ColorKu mode (available in all phases, but not when Ctrl is pressed)
 				colorKuMode = !colorKuMode;
 			} else if (gamePhase === 'configuring') {
 				// Configuration phase hotkeys
@@ -729,6 +886,9 @@
 					startGame();
 				} else if (event.key.toLowerCase() === 'm') {
 					startManualGame();
+				} else if (event.key.toLowerCase() === 'x') {
+					// Share current configuration
+					showShareModalForConfiguration();
 				}
 			} else if (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') {
 				// Solving, manual, and competition phase hotkeys
@@ -806,57 +966,75 @@
 </script>
 
 <main>
-	<SudokuGrid 
-		bind:board 
-		bind:selectedCell 
-		{gamePhase} 
-		{errorCell} 
-		{highlightedNumber}
-		{colorKuMode}
-		{highlightedSquares}
-		bind:gridSize
-		onCellSelected={(data) => updateHighlightedNumber(data.row, data.col)}
-	/>
-
-	{#if errorMessage}
-		<div class="error-message">{errorMessage}</div>
-	{/if}
-
-	{#if showingHint && currentHint}
-		<HintDisplay
-			bind:this={hintDisplayRef}
-			{gridSize}
-			{colorKuMode}
-			hint={currentHint}
-			onClose={closeHint}
-			onHighlight={handleHighlight}
-			onClearHighlights={handleClearHighlights}
-			onApplyHint={handleApplyHint}
+	{#if showChallengeStart && challengeData}
+		<ChallengeStart 
+			shareText={generateShareText(challengeData.completionTime, challengeData.difficulty)}
+			difficulty={challengeData.difficulty}
+			challengerTime={challengeData.completionTime}
+			colorKuMode={challengeData.colorKuMode}
+			onStartChallenge={startChallengeFromUrl}
 		/>
 	{:else}
-		<Controls
-			bind:inputMode
-			bind:colorKuMode
-			bind:difficulty
-			{gamePhase}
-			{errorCell}
-			{gridSize}
+		<SudokuGrid 
+			bind:board 
+			bind:selectedCell 
+			{gamePhase} 
+			{errorCell} 
 			{highlightedNumber}
-			selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
-			numberCounts={getNumberCounts()}
-			isTimerRunning={isTimerRunning}
-			timerStartTime={timerStartTime}
-			timerFinalTime={timerFinalTime}
-			onStartGame={startGame}
-			onStartManualGame={startManualGame}
-			onStartCompetitionGame={startCompetitionGame}
-			onHandleDelete={handleDelete}
-			onUndo={undo}
-			onGeneratePuzzle={generatePuzzle}
-			onHandleInput={handleInput}
-			onGetHint={getHint}
+			{colorKuMode}
+			{highlightedSquares}
+			bind:gridSize
+			onCellSelected={(data) => updateHighlightedNumber(data.row, data.col)}
 		/>
+
+		{#if errorMessage}
+			<div class="error-message">{errorMessage}</div>
+		{/if}
+
+		{#if showingHint && currentHint}
+			<HintDisplay
+				bind:this={hintDisplayRef}
+				{gridSize}
+				{colorKuMode}
+				hint={currentHint}
+				onClose={closeHint}
+				onHighlight={handleHighlight}
+				onClearHighlights={handleClearHighlights}
+				onApplyHint={handleApplyHint}
+			/>
+		{:else}
+			<Controls
+				bind:inputMode
+				bind:colorKuMode
+				bind:difficulty
+				{gamePhase}
+				{errorCell}
+				{gridSize}
+				{highlightedNumber}
+				selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
+				numberCounts={getNumberCounts()}
+				isTimerRunning={isTimerRunning}
+				timerStartTime={timerStartTime}
+				timerFinalTime={timerFinalTime}
+				onStartGame={startGame}
+				onStartManualGame={startManualGame}
+				onStartCompetitionGame={startCompetitionGame}
+				onHandleDelete={handleDelete}
+				onUndo={undo}
+				onGeneratePuzzle={generatePuzzle}
+				onHandleInput={handleInput}
+				onGetHint={getHint}
+				onShare={showShareModalForConfiguration}
+			/>
+		{/if}
 	{/if}
+
+	<ShareModal 
+		isOpen={showShareModal}
+		{shareText}
+		{shareUrl}
+		onClose={closeShareModal}
+	/>
 </main>
 
 <style>

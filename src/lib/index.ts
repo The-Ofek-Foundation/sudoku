@@ -18,6 +18,10 @@ export type GamePhase = 'configuring' | 'solving' | 'manual' | 'competition';
 export type InputMode = 'normal' | 'note'; // Keep 'note' as UI term while using 'candidates' internally
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+// Export sharing utilities
+export { encodePuzzle, decodePuzzle, generateShareText, createShareableUrl, getChallengeFromUrl } from './share.js';
+export type { PuzzleShare } from './share.js';
+
 // Helper function to convert between UI numbers (1-9) and sudoku solver digits ('1'-'9')
 export function numberToDigit(num: number): Digit {
 	return num.toString() as Digit;

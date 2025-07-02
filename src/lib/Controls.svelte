@@ -27,6 +27,7 @@
 	export let onHandleInput: (num: number) => void;
 	export let onGeneratePuzzle: () => void;
 	export let onGetHint: () => void;
+	export let onShare: () => void;
 
 	let startMode: 'normal' | 'manual' | 'competition' = 'normal';
 
@@ -66,6 +67,10 @@
 
 	function getHint() {
 		onGetHint();
+	}
+
+	function share() {
+		onShare();
 	}
 </script>
 
@@ -118,6 +123,16 @@
 					<line x1="10" y1="11" x2="10" y2="17"/>
 					<line x1="14" y1="11" x2="14" y2="17"/>
 				</svg>
+			</button>
+			<button class="action-button share-button" on:click={share} aria-label="Share puzzle">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="18" cy="5" r="3"/>
+					<circle cx="6" cy="12" r="3"/>
+					<circle cx="18" cy="19" r="3"/>
+					<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+					<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+				</svg>
+				<span>Share</span>
 			</button>
 		{:else}
 			<div class="note-mode-toggle">
@@ -441,6 +456,21 @@
 		color: #212529;
 		transform: none;
 		box-shadow: none;
+	}
+
+	.share-button {
+		background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+		border-color: #17a2b8;
+		color: white;
+		transition: all 0.2s ease;
+	}
+
+	.share-button:hover {
+		background: linear-gradient(135deg, #138496 0%, #1e7e34 100%);
+		border-color: #138496;
+		color: white;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 	}
 	.number-palette {
 		display: grid;
