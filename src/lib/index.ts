@@ -14,7 +14,7 @@ export type CellData = {
 	isInitial: boolean;
 };
 
-export type GamePhase = 'configuring' | 'solving' | 'manual';
+export type GamePhase = 'configuring' | 'solving' | 'manual' | 'competition';
 export type InputMode = 'normal' | 'note'; // Keep 'note' as UI term while using 'candidates' internally
 export type Difficulty = 'easy' | 'medium' | 'hard';
 

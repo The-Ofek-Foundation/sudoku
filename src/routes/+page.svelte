@@ -29,6 +29,11 @@
 	let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[] | null = null;
 	let hintDisplayRef: HintDisplay; // Reference to HintDisplay component
 
+	// Timer state for competition mode
+	let timerStartTime: number | null = null;
+	let timerFinalTime: number | null = null;
+	let isTimerRunning: boolean = false;
+
 	let board: CellData[][] = Array(9)
 		.fill(null)
 		.map(() =>
@@ -47,8 +52,8 @@
 			// Cell has a value, highlight that number
 			highlightedNumber = cellValue;
 			cyclingNumber = null; // Reset cycling for cells with values
-		} else if ((gamePhase === 'solving' || gamePhase === 'manual') && board[row][col].candidates.size > 0) {
-			// Cell has no value but has candidates during solving/manual phase - auto-start cycling
+		} else if ((gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[row][col].candidates.size > 0) {
+			// Cell has no value but has candidates during solving/manual/competition phase - auto-start cycling
 			highlightedNumber = null;
 			startCycling(); // Automatically start cycling with the first available number
 		} else {
@@ -58,8 +63,33 @@
 		}
 	}
 
+	function isPuzzleComplete(): boolean {
+		// Check if all cells are filled
+		for (let row = 0; row < 9; row++) {
+			for (let col = 0; col < 9; col++) {
+				if (board[row][col].value === null) {
+					return false;
+				}
+			}
+		}
+		
+		// In competition mode, also verify the solution is correct
+		if (gamePhase === 'competition') {
+			for (let row = 0; row < 9; row++) {
+				for (let col = 0; col < 9; col++) {
+					const cellValue = board[row][col].value;
+					if (cellValue === null || !isCorrectPlacement(row, col, cellValue)) {
+						return false;
+					}
+				}
+			}
+		}
+		
+		return true;
+	}
+
 	function getAvailableNumbersForCycling(): number[] {
-		if (!selectedCell || (gamePhase !== 'solving' && gamePhase !== 'manual')) return [];
+		if (!selectedCell || (gamePhase !== 'solving' && gamePhase !== 'manual' && gamePhase !== 'competition')) return [];
 		
 		const { row, col } = selectedCell;
 		const cell = board[row][col];
@@ -68,10 +98,10 @@
 		if (cell.value !== null) return [];
 		
 		if (inputMode === 'normal') {
-			// In both solving and manual mode, cycle through numbers that have candidates
+			// In solving, manual, and competition mode, cycle through numbers that have candidates
 			return Array.from(cell.candidates).sort();
 		} else {
-			// In note mode, cycle through all numbers 1-9 for both modes
+			// In note mode, cycle through all numbers 1-9 for all modes
 			return [1, 2, 3, 4, 5, 6, 7, 8, 9];
 		}
 	}
@@ -263,6 +293,40 @@
 					// Trigger reactivity
 					board = board;
 				}
+			} else if (gamePhase === 'competition') {
+				// Competition mode: automatic candidate maintenance, no error detection, no hints
+				if (inputMode === 'normal' && !board[row][col].isInitial) {
+					// Only allow input if cell is empty
+					if (board[row][col].value === null) {
+						saveToHistory();
+						board[row][col].value = num;
+						board[row][col].candidates.clear();
+						
+						// Always update candidates in related cells (no error checking)
+						updateNotesAfterPlacement(row, col, num);
+						
+						// Check if puzzle is complete
+						if (isPuzzleComplete()) {
+							// Stop timer and record final time
+							isTimerRunning = false;
+							timerFinalTime = Date.now() - timerStartTime!;
+						}
+						// Trigger reactivity
+						board = board;
+					}
+					// Keep the cell selected and number highlighted for continued placement
+				} else if (inputMode === 'note' && !board[row][col].isInitial) {
+					// Note mode in competition phase
+					saveToHistory();
+					if (board[row][col].candidates.has(num)) {
+						board[row][col].candidates.delete(num);
+					} else {
+						board[row][col].candidates.add(num);
+					}
+					// Trigger reactivity
+					board = board;
+					// Keep the cell selected and number highlighted for continued note placement
+				}
 			} else if (inputMode === 'normal' && !board[row][col].isInitial) {
 				// Solving mode with error checking
 				// Only allow input if cell is empty
@@ -356,6 +420,42 @@
 			}
 		}
 		saveToHistory();
+	}
+
+	function startCompetitionGame() {
+		const boardStr = board
+			.map((row) => row.map((cell) => cell.value || '.').join(''))
+			.join('');
+
+		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
+		// The library has been modified to be used as an ES module.
+		const solutionResult = sudoku.solve(boardStr);
+
+		if (solutionResult === false) {
+			errorMessage = 'This puzzle has no solution.';
+		} else if (!sudoku.isUnique(boardStr)) {
+			errorMessage = 'This puzzle has multiple solutions.';
+		} else {
+			errorMessage = null;
+			solution = solutionResult; // Store the solution for verification
+			gamePhase = 'competition';
+			
+			// Start the timer
+			timerStartTime = Date.now();
+			timerFinalTime = null;
+			isTimerRunning = true;
+			
+			for (let i = 0; i < 9; i++) {
+				for (let j = 0; j < 9; j++) {
+					if (board[i][j].value !== null) {
+						board[i][j].isInitial = true;
+					} else {
+						board[i][j].candidates = getPossibleNumbers(i, j);
+					}
+				}
+			}
+			saveToHistory();
+		}
 	}
 
 	function saveToHistory() {
@@ -461,7 +561,7 @@
 	}
 
 	function getHint() {
-		// Only available in solving and manual modes
+		// Only available in solving and manual modes (not competition)
 		if (gamePhase !== 'solving' && gamePhase !== 'manual') return;
 		
 		// Close any existing hint first
@@ -597,8 +697,8 @@
 					if (currentValue !== null) {
 						// Cell has a value - cycle to next cell with same number
 						cycleToNextCellWithSameNumber();
-					} else if (gamePhase === 'solving' || gamePhase === 'manual') {
-						// Cell is empty and we're in solving or manual phase - cycle through available numbers
+					} else if (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') {
+						// Cell is empty and we're in solving, manual, or competition phase - cycle through available numbers
 						cycleToNextNumber();
 					}
 				}
@@ -606,7 +706,7 @@
 				event.preventDefault(); // Prevent default enter behavior
 				
 				// Place/toggle the cycling number
-				if (selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && cyclingNumber !== null) {
+				if (selectedCell && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && cyclingNumber !== null) {
 					const { row, col } = selectedCell;
 					if (board[row][col].value === null) {
 						placeCyclingNumber();
@@ -630,15 +730,15 @@
 				} else if (event.key.toLowerCase() === 'm') {
 					startManualGame();
 				}
-			} else if (gamePhase === 'solving' || gamePhase === 'manual') {
-				// Solving and manual phase hotkeys
+			} else if (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') {
+				// Solving, manual, and competition phase hotkeys
 				if (event.key.toLowerCase() === 'n') {
 					// Toggle normal/note mode
 					inputMode = inputMode === 'normal' ? 'note' : 'normal';
 				} else if (event.key.toLowerCase() === 'u') {
 					undo();
-				} else if (event.key.toLowerCase() === 'h') {
-					// Get hint or advance hint stage if already showing
+				} else if (event.key.toLowerCase() === 'h' && gamePhase !== 'competition') {
+					// Get hint or advance hint stage if already showing (not in competition mode)
 					if (showingHint && hintDisplayRef) {
 						// Advance to next hint stage
 						hintDisplayRef.advanceStage();
@@ -652,11 +752,11 @@
 				}
 			}
 			
-			// Navigation keys - Arrow keys always available, WASD only in solving and manual phase
+			// Navigation keys - Arrow keys always available, WASD only in solving, manual, and competition phase
 			const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key);
 			const isWASD = ['w', 'a', 's', 'd'].includes(event.key.toLowerCase());
 			
-			if (isArrowKey || (isWASD && (gamePhase === 'solving' || gamePhase === 'manual'))) {
+			if (isArrowKey || (isWASD && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition'))) {
 				// Handle navigation keys
 				event.preventDefault(); // Prevent default behavior (like scrolling)
 				
@@ -742,10 +842,14 @@
 			{errorCell}
 			{gridSize}
 			{highlightedNumber}
-			selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
+			selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
 			numberCounts={getNumberCounts()}
+			isTimerRunning={isTimerRunning}
+			timerStartTime={timerStartTime}
+			timerFinalTime={timerFinalTime}
 			onStartGame={startGame}
 			onStartManualGame={startManualGame}
+			onStartCompetitionGame={startCompetitionGame}
 			onHandleDelete={handleDelete}
 			onUndo={undo}
 			onGeneratePuzzle={generatePuzzle}

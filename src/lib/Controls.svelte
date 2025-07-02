@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { colorKuColors } from './colors.js';
+	import Timer from './Timer.svelte';
 	import type { GamePhase, InputMode, Difficulty } from '$lib';
 
 	export let gamePhase: GamePhase;
@@ -12,16 +13,22 @@
 	export let selectedCellCandidates: Set<number> = new Set(); // Renamed from selectedCellNotes for consistency
 	export let numberCounts: { [key: number]: number } = {};
 
+	// Timer props for competition mode
+	export let isTimerRunning: boolean = false;
+	export let timerStartTime: number | null = null;
+	export let timerFinalTime: number | null = null;
+
 	// Callback props instead of event dispatcher
 	export let onStartGame: () => void;
 	export let onStartManualGame: () => void;
+	export let onStartCompetitionGame: () => void;
 	export let onHandleDelete: () => void;
 	export let onUndo: () => void;
 	export let onHandleInput: (num: number) => void;
 	export let onGeneratePuzzle: () => void;
 	export let onGetHint: () => void;
 
-	let startMode: 'normal' | 'manual' = 'normal';
+	let startMode: 'normal' | 'manual' | 'competition' = 'normal';
 
 	let isNoteMode = inputMode === 'note';
 
@@ -34,8 +41,10 @@
 	function startGame() {
 		if (startMode === 'normal') {
 			onStartGame();
-		} else {
+		} else if (startMode === 'manual') {
 			onStartManualGame();
+		} else if (startMode === 'competition') {
+			onStartCompetitionGame();
 		}
 	}
 
@@ -62,6 +71,15 @@
 
 <div class="control-bar" style="max-width: {gridSize}">
 	<div class="actions-row">
+		{#if gamePhase === 'competition'}
+			<Timer 
+				isRunning={isTimerRunning}
+				startTime={timerStartTime}
+				finalTime={timerFinalTime}
+				compact={true}
+			/>
+		{/if}
+		
 		{#if gamePhase === 'configuring'}
 			<div class="generate-group">
 				<button class="action-button generate-button" on:click={generatePuzzle}>
@@ -89,6 +107,7 @@
 				<select bind:value={startMode} class="start-mode-compact">
 					<option value="normal">Normal</option>
 					<option value="manual">Manual</option>
+					<option value="competition">Competition</option>
 				</select>
 			</div>
 			<button class="action-button icon-button" on:click={handleDelete} aria-label="Delete">
@@ -141,6 +160,7 @@
 				on:click={getHint}
 				aria-label="Get hint"
 				title="Get hint"
+				style:display={gamePhase === 'competition' ? 'none' : 'inline-flex'}
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M9 21h6"/>
@@ -157,19 +177,13 @@
 			on:click={() => colorKuMode = !colorKuMode}
 			aria-label="Toggle ColorKu mode"
 		>
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="10"/>
-				<path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-				<line x1="9" y1="9" x2="9.01" y2="9"/>
-				<line x1="15" y1="9" x2="15.01" y2="9"/>
-			</svg>
 			<span>ColorKu</span>
 		</button>
 	</div>
 
 	<div class="number-palette">
 		{#each Array(9) as _, i}
-			{#if gamePhase === 'configuring' || gamePhase === 'manual' || (numberCounts[i + 1] || 0) < 9}
+			{#if (numberCounts[i + 1] || 0) < 9}
 				<button 
 					class="number-button" 
 					class:disabled={errorCell && gamePhase === 'solving'}
@@ -302,7 +316,7 @@
 		border-bottom-left-radius: 0;
 		border-top-right-radius: 8px;
 		border-bottom-right-radius: 8px;
-		min-width: 80px;
+		min-width: 100px;
 	}
 
 	.difficulty-compact:hover {
@@ -686,7 +700,7 @@
 		.start-mode-compact {
 			padding: 0.375rem 0.5rem;
 			font-size: 0.75rem;
-			min-width: 70px;
+			min-width: 90px;
 		}
 	}
 </style>

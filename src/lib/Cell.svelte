@@ -32,7 +32,7 @@
 		{:else}
 			<span class="value" class:highlighted={highlightedNumber === value}>{value}</span>
 		{/if}
-	{:else if gamePhase === 'solving' || gamePhase === 'manual'}
+	{:else if gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition'}
 		<div class="notes-grid">
 			{#each Array(9) as _, i}
 				<div class="note-cell" class:highlighted={highlightedNumber === i + 1} class:dulled={shouldDullNote(i + 1)}>
