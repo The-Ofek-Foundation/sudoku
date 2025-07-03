@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ComprehensiveHint } from './sudoku/sudoku';
+	import type { SudokuHint } from './sudoku/sudoku';
 	import { difficultyToCategory } from '$lib';
 	import { colorKuColors } from './colors.js';
 
-	export let hint: ComprehensiveHint;
+	export let hint: SudokuHint;
 	export let gridSize: string;
 	export let colorKuMode: boolean = false;
 

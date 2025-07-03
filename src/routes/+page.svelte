@@ -17,7 +17,7 @@
 		coordinatesToSquare,
 		squareToCoordinates,
 	} from '$lib';
-	import type { ComprehensiveHint, Values } from '$lib/sudoku/sudoku';
+	import type { SudokuHint, Values } from '$lib/sudoku/sudoku';
 	import {
 		encodePuzzle,
 		generateShareText,
@@ -47,7 +47,7 @@
 	$: controlPanelWidth = `calc(${gridSize} + 6px)`;
 
 	// Hint system state
-	let currentHint: ComprehensiveHint | null = null;
+	let currentHint: SudokuHint | null = null;
 	let showingHint: boolean = false;
 	let highlightedSquares:
 		| { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[]
@@ -648,25 +648,17 @@
 
 		const currentValues = boardToValues();
 
-		let hint: ComprehensiveHint | null = null;
+		let hint: SudokuHint | null = null;
 		const currentCandidates = boardToCandidates();
 
 		if (gamePhase === 'solving') {
 			// In solving mode, we have the original puzzle for verification
 			const initialPuzzle = getInitialPuzzle();
-			hint = sudoku.getComprehensiveHint(
-				initialPuzzle,
-				currentValues,
-				currentCandidates,
-			);
+			hint = sudoku.getHint(initialPuzzle, currentValues, currentCandidates);
 		} else {
 			// In manual mode, we can't verify against a solution, so we create a minimal puzzle
 			// and let the hint system work with what we have
-			hint = sudoku.getComprehensiveHint(
-				currentValues,
-				currentValues,
-				currentCandidates,
-			);
+			hint = sudoku.getHint(currentValues, currentValues, currentCandidates);
 		}
 
 		if (hint) {

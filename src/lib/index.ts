@@ -1,8 +1,12 @@
 // place files you want to import through the `$lib` alias in this folder.
 
 // Export sudoku solver and types for use throughout the application
-export { default as sudoku } from './sudoku/sudoku';
-export { getTechniqueDifficulty, difficultyToCategory } from './sudoku/sudoku';
+export { default as sudoku } from './sudoku/index';
+export {
+	getTechniqueDifficulty,
+	difficultyToCategory,
+	getHint,
+} from './sudoku/index';
 export type {
 	Square,
 	Digit,
@@ -12,17 +16,17 @@ export type {
 	Grid,
 	Values,
 	Candidates,
-} from './sudoku/sudoku';
+} from './sudoku/types';
 export type {
-	ComprehensiveHint,
+	SudokuHint,
 	ErrorHint,
 	MissingCandidateHint,
 	SingleCellHint,
 	NakedSetHint,
 	HiddenSetHint,
 	IntersectionRemovalHint,
-} from './sudoku/sudoku';
-import type { Square, Digit } from './sudoku/sudoku';
+} from './sudoku/hints/index';
+import type { Square, Digit } from './sudoku/types';
 
 // Define shared UI types that work with the sudoku solver types
 export type CellData = {
