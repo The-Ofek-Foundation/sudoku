@@ -25,6 +25,21 @@
 		getChallengeFromUrl,
 		type PuzzleShare,
 	} from '$lib/share.js';
+	import {
+		validateBoardSimple,
+		boardToString,
+		getPossibleNumbers,
+		updateCandidatesAfterPlacement,
+		isPuzzleComplete as checkPuzzleComplete,
+		createEmptyBoard,
+		getNumberCounts,
+		boardToValues,
+		boardToCandidates,
+		getInitialPuzzle,
+		getCellsWithSameNumber,
+		isCorrectPlacement,
+		type SimpleValidationResult,
+	} from '$lib/utils/boardUtils.js';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
@@ -67,17 +82,7 @@
 	let showChallengeStart: boolean = false;
 	let showCongratulationsModal: boolean = false;
 
-	let board: CellData[][] = Array(9)
-		.fill(null)
-		.map(() =>
-			Array(9)
-				.fill(null)
-				.map(() => ({
-					value: null,
-					candidates: new Set<number>(),
-					isInitial: false,
-				})),
-		);
+	let board: CellData[][] = createEmptyBoard();
 
 	function updateHighlightedNumber(row: number, col: number) {
 		const cellValue = board[row][col].value;
@@ -117,12 +122,8 @@
 
 	function isPuzzleComplete(): boolean {
 		// Check if all cells are filled
-		for (let row = 0; row < 9; row++) {
-			for (let col = 0; col < 9; col++) {
-				if (board[row][col].value === null) {
-					return false;
-				}
-			}
+		if (!checkPuzzleComplete(board)) {
+			return false;
 		}
 
 		// In competition mode, also verify the solution is correct
@@ -130,7 +131,10 @@
 			for (let row = 0; row < 9; row++) {
 				for (let col = 0; col < 9; col++) {
 					const cellValue = board[row][col].value;
-					if (cellValue === null || !isCorrectPlacement(row, col, cellValue)) {
+					if (
+						cellValue === null ||
+						!isCorrectPlacement(solution, row, col, cellValue)
+					) {
 						return false;
 					}
 				}
@@ -195,29 +199,13 @@
 		// Don't reset cycling - keep the same number highlighted for consecutive placements
 	}
 
-	function getCellsWithSameNumber(
-		targetNumber: number,
-	): { row: number; col: number }[] {
-		const cellsWithNumber: { row: number; col: number }[] = [];
-
-		for (let row = 0; row < 9; row++) {
-			for (let col = 0; col < 9; col++) {
-				if (board[row][col].value === targetNumber) {
-					cellsWithNumber.push({ row, col });
-				}
-			}
-		}
-
-		return cellsWithNumber;
-	}
-
 	function cycleToNextCellWithSameNumber() {
 		if (!selectedCell) return;
 
 		const currentValue = board[selectedCell.row][selectedCell.col].value;
 		if (currentValue === null) return; // Only cycle for cells with values
 
-		const cellsWithSameNumber = getCellsWithSameNumber(currentValue);
+		const cellsWithSameNumber = getCellsWithSameNumber(board, currentValue);
 		if (cellsWithSameNumber.length <= 1) return; // No other cells to cycle to
 
 		// Find current cell index in the list
@@ -234,93 +222,6 @@
 
 		selectedCell = { row: nextCell.row, col: nextCell.col };
 		updateHighlightedNumber(nextCell.row, nextCell.col);
-	}
-
-	function getNumberCounts(): { [key: number]: number } {
-		const counts: { [key: number]: number } = {};
-		for (let i = 1; i <= 9; i++) {
-			counts[i] = 0;
-		}
-
-		for (let row = 0; row < 9; row++) {
-			for (let col = 0; col < 9; col++) {
-				const value = board[row][col].value;
-				if (value !== null) {
-					counts[value]++;
-				}
-			}
-		}
-
-		return counts;
-	}
-
-	function getPossibleNumbers(row: number, col: number): Set<number> {
-		const possible = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-		const subgridRow = Math.floor(row / 3) * 3;
-		const subgridCol = Math.floor(col / 3) * 3;
-
-		// Remove numbers that exist in the same row
-		for (let i = 0; i < 9; i++) {
-			if (board[row][i].value !== null) {
-				possible.delete(board[row][i].value!);
-			}
-		}
-
-		// Remove numbers that exist in the same column
-		for (let i = 0; i < 9; i++) {
-			if (board[i][col].value !== null) {
-				possible.delete(board[i][col].value!);
-			}
-		}
-
-		// Remove numbers that exist in the same 3x3 subgrid
-		for (let i = subgridRow; i < subgridRow + 3; i++) {
-			for (let j = subgridCol; j < subgridCol + 3; j++) {
-				if (board[i][j].value !== null) {
-					possible.delete(board[i][j].value!);
-				}
-			}
-		}
-
-		return possible;
-	}
-
-	function isCorrectPlacement(row: number, col: number, num: number): boolean {
-		if (!solution) return true; // If no solution stored, can't verify
-
-		// Convert row/col to sudoku library format (A1-I9)
-		const rows = 'ABCDEFGHI';
-		const cols = '123456789';
-		const square = rows[row] + cols[col];
-
-		return solution[square] === num.toString();
-	}
-
-	function updateNotesAfterPlacement(row: number, col: number, num: number) {
-		// Remove the placed number from candidates in the same row, column, and 3x3 subgrid
-		const subgridRow = Math.floor(row / 3) * 3;
-		const subgridCol = Math.floor(col / 3) * 3;
-
-		for (let i = 0; i < 9; i++) {
-			// Remove from same row
-			if (i !== col && !board[row][i].isInitial) {
-				board[row][i].candidates.delete(num);
-			}
-
-			// Remove from same column
-			if (i !== row && !board[i][col].isInitial) {
-				board[i][col].candidates.delete(num);
-			}
-		}
-
-		// Remove from same 3x3 subgrid
-		for (let i = subgridRow; i < subgridRow + 3; i++) {
-			for (let j = subgridCol; j < subgridCol + 3; j++) {
-				if ((i !== row || j !== col) && !board[i][j].isInitial) {
-					board[i][j].candidates.delete(num);
-				}
-			}
-		}
 	}
 
 	function handleInput(num: number) {
@@ -371,7 +272,7 @@
 						board[row][col].candidates.clear();
 
 						// Always update candidates in related cells (no error checking)
-						updateNotesAfterPlacement(row, col, num);
+						updateCandidatesAfterPlacement(board, row, col, num);
 
 						// Check if puzzle is complete
 						if (isPuzzleComplete()) {
@@ -407,11 +308,11 @@
 					board[row][col].candidates.clear();
 
 					// Check if the placement is correct
-					if (!isCorrectPlacement(row, col, num)) {
+					if (!isCorrectPlacement(solution, row, col, num)) {
 						errorCell = { row, col };
 					} else {
 						// Automatically update candidates in related cells only if correct
-						updateNotesAfterPlacement(row, col, num);
+						updateCandidatesAfterPlacement(board, row, col, num);
 
 						// Check if puzzle is complete
 						if (isPuzzleComplete()) {
@@ -451,33 +352,27 @@
 	}
 
 	function startGame() {
-		const boardStr = board
-			.map((row) => row.map((cell) => cell.value || '.').join(''))
-			.join('');
+		const validation = validateBoardSimple(board);
 
-		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
-		// The library has been modified to be used as an ES module.
-		const solutionResult = sudoku.solve(boardStr);
+		if (!validation.isValid) {
+			errorMessage = validation.errorMessage || 'Invalid puzzle configuration';
+			return;
+		}
 
-		if (solutionResult === false) {
-			errorMessage = 'This puzzle has no solution.';
-		} else if (!sudoku.isUnique(boardStr)) {
-			errorMessage = 'This puzzle has multiple solutions.';
-		} else {
-			errorMessage = null;
-			solution = solutionResult; // Store the solution for verification
-			gamePhase = 'solving';
-			for (let i = 0; i < 9; i++) {
-				for (let j = 0; j < 9; j++) {
-					if (board[i][j].value !== null) {
-						board[i][j].isInitial = true;
-					} else {
-						board[i][j].candidates = getPossibleNumbers(i, j);
-					}
+		errorMessage = null;
+		solution = validation.solution!; // We know it's not null since validation passed
+		gamePhase = 'solving';
+
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				if (board[i][j].value !== null) {
+					board[i][j].isInitial = true;
+				} else {
+					board[i][j].candidates = getPossibleNumbers(board, i, j);
 				}
 			}
-			saveToHistory();
 		}
+		saveToHistory();
 	}
 
 	function startManualGame() {
@@ -500,39 +395,32 @@
 	}
 
 	function startCompetitionGame() {
-		const boardStr = board
-			.map((row) => row.map((cell) => cell.value || '.').join(''))
-			.join('');
+		const validation = validateBoardSimple(board);
 
-		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
-		// The library has been modified to be used as an ES module.
-		const solutionResult = sudoku.solve(boardStr);
+		if (!validation.isValid) {
+			errorMessage = validation.errorMessage || 'Invalid puzzle configuration';
+			return;
+		}
 
-		if (solutionResult === false) {
-			errorMessage = 'This puzzle has no solution.';
-		} else if (!sudoku.isUnique(boardStr)) {
-			errorMessage = 'This puzzle has multiple solutions.';
-		} else {
-			errorMessage = null;
-			solution = solutionResult; // Store the solution for verification
-			gamePhase = 'competition';
+		errorMessage = null;
+		solution = validation.solution!; // We know it's not null since validation passed
+		gamePhase = 'competition';
 
-			// Start the timer
-			timerStartTime = Date.now();
-			timerFinalTime = null;
-			isTimerRunning = true;
+		// Start the timer
+		timerStartTime = Date.now();
+		timerFinalTime = null;
+		isTimerRunning = true;
 
-			for (let i = 0; i < 9; i++) {
-				for (let j = 0; j < 9; j++) {
-					if (board[i][j].value !== null) {
-						board[i][j].isInitial = true;
-					} else {
-						board[i][j].candidates = getPossibleNumbers(i, j);
-					}
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				if (board[i][j].value !== null) {
+					board[i][j].isInitial = true;
+				} else {
+					board[i][j].candidates = getPossibleNumbers(board, i, j);
 				}
 			}
-			saveToHistory();
 		}
+		saveToHistory();
 	}
 
 	function saveToHistory() {
@@ -547,17 +435,7 @@
 
 	function generatePuzzle() {
 		// Clear the current board
-		board = Array(9)
-			.fill(null)
-			.map(() =>
-				Array(9)
-					.fill(null)
-					.map(() => ({
-						value: null,
-						candidates: new Set<number>(),
-						isInitial: false,
-					})),
-			);
+		board = createEmptyBoard();
 
 		// Generate a new puzzle using the sudoku library
 		const generatedPuzzle = sudoku.generate(difficulty) as {
@@ -582,63 +460,6 @@
 		errorMessage = null;
 	}
 
-	// Helper function to convert board to Values format for hint detection
-	function boardToValues(): Values {
-		const values: Values = {};
-		const rows = 'ABCDEFGHI';
-		const cols = '123456789';
-
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				const square = rows[i] + cols[j];
-				if (board[i][j].value !== null) {
-					values[square] = board[i][j].value!.toString();
-				}
-			}
-		}
-
-		return values;
-	}
-
-	// Helper function to convert board candidates to Candidates format for hint detection
-	function boardToCandidates(): Record<string, Set<string>> {
-		const candidates: Record<string, Set<string>> = {};
-		const rows = 'ABCDEFGHI';
-		const cols = '123456789';
-
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				const square = rows[i] + cols[j];
-				if (board[i][j].value === null && board[i][j].candidates.size > 0) {
-					// Convert number set to string set for hint system
-					candidates[square] = new Set(
-						Array.from(board[i][j].candidates).map((n) => n.toString()),
-					);
-				}
-			}
-		}
-
-		return candidates;
-	}
-
-	// Helper function to get the initial puzzle for hint detection
-	function getInitialPuzzle(): Values {
-		const values: Values = {};
-		const rows = 'ABCDEFGHI';
-		const cols = '123456789';
-
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				const square = rows[i] + cols[j];
-				if (board[i][j].isInitial && board[i][j].value !== null) {
-					values[square] = board[i][j].value!.toString();
-				}
-			}
-		}
-
-		return values;
-	}
-
 	function getHint() {
 		// Only available in solving and manual modes (not competition)
 		if (gamePhase !== 'solving' && gamePhase !== 'manual') return;
@@ -646,14 +467,14 @@
 		// Close any existing hint first
 		closeHint();
 
-		const currentValues = boardToValues();
+		const currentValues = boardToValues(board);
 
 		let hint: SudokuHint | null = null;
-		const currentCandidates = boardToCandidates();
+		const currentCandidates = boardToCandidates(board);
 
 		if (gamePhase === 'solving') {
 			// In solving mode, we have the original puzzle for verification
-			const initialPuzzle = getInitialPuzzle();
+			const initialPuzzle = getInitialPuzzle(board);
 			hint = sudoku.getHint(initialPuzzle, currentValues, currentCandidates);
 		} else {
 			// In manual mode, we can't verify against a solution, so we create a minimal puzzle
@@ -722,7 +543,12 @@
 
 			// In solving mode, update notes in related cells
 			if (gamePhase === 'solving') {
-				updateNotesAfterPlacement(row, col, parseInt(currentHint.digit));
+				updateCandidatesAfterPlacement(
+					board,
+					row,
+					col,
+					parseInt(currentHint.digit),
+				);
 			}
 		} else if (
 			currentHint.type === 'naked_set' ||
@@ -789,30 +615,22 @@
 	}
 
 	function showShareModalForConfiguration() {
-		// Validate the puzzle first (like start game does)
-		const boardStr = board
-			.map((row) => row.map((cell) => cell.value || '.').join(''))
-			.join('');
+		// Validate the puzzle first
+		const validation = validateBoardSimple(board);
 
-		// Check if puzzle has a solution and is unique
-		const solutionResult = sudoku.solve(boardStr);
-
-		if (solutionResult === false) {
-			errorMessage = 'This puzzle has no solution and cannot be shared.';
+		if (!validation.isValid) {
+			errorMessage = validation.errorMessage || 'Invalid puzzle configuration';
 			return;
-		} else if (!sudoku.isUnique(boardStr)) {
-			errorMessage = 'This puzzle has multiple solutions and cannot be shared.';
-			return;
-		} else {
-			// Clear any existing error message
-			errorMessage = null;
-
-			// Generate share data
-			const encoded = encodePuzzle(board, difficulty, undefined, colorKuMode);
-			shareText = generateShareText(undefined, difficulty);
-			shareUrl = createShareableUrl(encoded);
-			showShareModal = true;
 		}
+
+		// Clear any existing error message
+		errorMessage = null;
+
+		// Generate share data
+		const encoded = encodePuzzle(board, difficulty, undefined, colorKuMode);
+		shareText = generateShareText(undefined, difficulty);
+		shareUrl = createShareableUrl(encoded);
+		showShareModal = true;
 	}
 
 	function closeShareModal() {
@@ -840,32 +658,12 @@
 		highlightedSquares = null;
 
 		// Clear the board
-		board = Array(9)
-			.fill(null)
-			.map(() =>
-				Array(9)
-					.fill(null)
-					.map(() => ({
-						value: null,
-						candidates: new Set<number>(),
-						isInitial: false,
-					})),
-			);
+		board = createEmptyBoard();
 	}
 
 	function loadChallengeBoard(puzzleData: PuzzleShare) {
 		// Clear the current board
-		board = Array(9)
-			.fill(null)
-			.map(() =>
-				Array(9)
-					.fill(null)
-					.map(() => ({
-						value: null,
-						candidates: new Set<number>(),
-						isInitial: false,
-					})),
-			);
+		board = createEmptyBoard();
 
 		// Load the puzzle configuration
 		for (let i = 0; i < 81; i++) {
@@ -902,43 +700,32 @@
 		loadChallengeBoard(challengeData);
 
 		// Now that the board is loaded, validate it and start competition mode
-		const boardStr = board
-			.map((row) => row.map((cell) => cell.value || '.').join(''))
-			.join('');
+		const validation = validateBoardSimple(board);
 
-		console.log('Challenge board string:', boardStr); // Debug log
-
-		// Sudoku solver from https://github.com/einaregilsson/sudoku.js
-		const solutionResult = sudoku.solve(boardStr);
-
-		if (solutionResult === false) {
-			errorMessage = 'This challenge puzzle has no solution.';
+		if (!validation.isValid) {
+			errorMessage = validation.errorMessage || 'Invalid puzzle configuration';
 			showChallengeStart = false; // Show the main interface
 			return;
-		} else if (!sudoku.isUnique(boardStr)) {
-			errorMessage = 'This challenge puzzle has multiple solutions.';
-			showChallengeStart = false; // Show the main interface
-			return;
-		} else {
-			errorMessage = null;
-			solution = solutionResult; // Store the solution for verification
-			gamePhase = 'competition';
+		}
 
-			// Start the timer
-			timerStartTime = Date.now();
-			timerFinalTime = null;
-			isTimerRunning = true;
+		errorMessage = null;
+		solution = validation.solution!; // We know it's not null since validation passed
+		gamePhase = 'competition';
 
-			// Initialize candidates for empty cells
-			for (let i = 0; i < 9; i++) {
-				for (let j = 0; j < 9; j++) {
-					if (board[i][j].value === null) {
-						board[i][j].candidates = getPossibleNumbers(i, j);
-					}
+		// Start the timer
+		timerStartTime = Date.now();
+		timerFinalTime = null;
+		isTimerRunning = true;
+
+		// Initialize candidates for empty cells
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				if (board[i][j].value === null) {
+					board[i][j].candidates = getPossibleNumbers(board, i, j);
 				}
 			}
-			saveToHistory();
 		}
+		saveToHistory();
 
 		// Hide challenge start screen
 		showChallengeStart = false;
@@ -1185,7 +972,7 @@
 					board[selectedCell.row][selectedCell.col].value === null
 						? board[selectedCell.row][selectedCell.col].candidates
 						: new Set()}
-					numberCounts={getNumberCounts()}
+					numberCounts={getNumberCounts(board)}
 					{isTimerRunning}
 					{timerStartTime}
 					{timerFinalTime}

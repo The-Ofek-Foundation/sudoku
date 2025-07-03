@@ -2,6 +2,7 @@
 	import Cell from '$lib/Cell.svelte';
 	import { onMount } from 'svelte';
 	import type { GamePhase } from '$lib';
+	import { coordinatesToSquare } from '$lib';
 
 	// Callback props instead of createEventDispatcher
 	export let onCellSelected: (data: { row: number; col: number }) => void;
@@ -41,13 +42,6 @@
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
 		onCellSelected({ row, col });
-	}
-
-	// Helper function to convert row/col to square notation
-	function coordinatesToSquare(row: number, col: number): string {
-		const rows = 'ABCDEFGHI';
-		const cols = '123456789';
-		return rows[row] + cols[col];
 	}
 
 	// Helper function to get highlight types for a cell (can be multiple)
