@@ -31,7 +31,7 @@
 		const minutes = Math.floor(totalSeconds / 60);
 		const seconds = totalSeconds % 60;
 		const centiseconds = Math.floor((timeMs % 1000) / 10);
-		
+
 		return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
 	}
 
@@ -44,9 +44,19 @@
 
 <div class="timer" class:final={finalTime !== null} class:compact>
 	<div class="timer-icon">
-		<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-			<circle cx="12" cy="12" r="10"/>
-			<polyline points="12,6 12,12 16,14"/>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="20"
+			height="20"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<circle cx="12" cy="12" r="10" />
+			<polyline points="12,6 12,12 16,14" />
 		</svg>
 	</div>
 	<div class="timer-display">
@@ -58,29 +68,33 @@
 	.timer {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem;
-		background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-		border: 2px solid #e9ecef;
-		border-radius: 12px;
-		box-shadow: 
-			0 4px 12px rgba(0, 0, 0, 0.1),
-			inset 0 1px 0 rgba(255, 255, 255, 0.5);
+		gap: var(--space-md);
+		padding: var(--space-lg) var(--space-xl);
+		background: var(--gradient-surface);
+		border: 2px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-md), var(--shadow-inset);
 		font-family: 'Courier New', monospace;
-		transition: all 0.3s ease;
+		transition: var(--transition-smooth);
 	}
 
 	.timer.final {
-		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-		border-color: #28a745;
-		color: white;
+		background: var(--gradient-success);
+		border-color: var(--color-success);
+		color: var(--color-white);
 		animation: celebration 0.6s ease-out;
 	}
 
 	@keyframes celebration {
-		0% { transform: scale(1); }
-		50% { transform: scale(1.05); }
-		100% { transform: scale(1); }
+		0% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.05);
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 
 	.timer-icon {
@@ -90,29 +104,29 @@
 	}
 
 	.timer-display {
-		font-size: 1.5rem;
-		font-weight: 600;
+		font-size: var(--font-size-2xl);
+		font-weight: var(--font-weight-bold);
 		letter-spacing: 0.05em;
 		min-width: 120px;
 		text-align: center;
 	}
 
 	.timer.compact {
-		padding: 0.5rem 0.75rem;
-		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-		border: 1px solid #dee2e6;
-		border-radius: 8px;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		padding: var(--space-md) var(--space-lg);
+		background: var(--gradient-toggle);
+		border: 1px solid var(--color-medium);
+		border-radius: var(--radius-sm);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.timer.compact.final {
-		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-		border-color: #28a745;
-		color: white;
+		background: var(--gradient-success);
+		border-color: var(--color-success);
+		color: var(--color-white);
 	}
 
 	.timer.compact .timer-display {
-		font-size: 1rem;
+		font-size: var(--font-size-lg);
 		min-width: 80px;
 	}
 
@@ -124,11 +138,11 @@
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
 		.timer {
-			padding: 0.5rem 0.75rem;
+			padding: var(--space-md) var(--space-lg);
 		}
-		
+
 		.timer-display {
-			font-size: 1.25rem;
+			font-size: var(--font-size-xl);
 			min-width: 100px;
 		}
 	}
@@ -136,11 +150,11 @@
 	/* Small screen adjustments */
 	@media (max-height: 600px) {
 		.timer {
-			padding: 0.375rem 0.5rem;
+			padding: var(--space-sm) var(--space-md);
 		}
-		
+
 		.timer-display {
-			font-size: 1rem;
+			font-size: var(--font-size-lg);
 			min-width: 90px;
 		}
 	}

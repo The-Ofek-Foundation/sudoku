@@ -5,21 +5,23 @@
 
 	// Array of encouraging messages
 	const congratsMessages = [
-		"Great work! You make that look easy.",
+		'Great work! You make that look easy.',
 		"Fantastic! You're a sudoku master!",
-		"Brilliant solving! That was impressive.",
+		'Brilliant solving! That was impressive.',
 		"Outstanding work! You've got real skill.",
-		"Excellent job! Your logic is spot on.",
-		"Amazing! You solved it like a pro.",
-		"Superb! Your sudoku skills are top-notch.",
+		'Excellent job! Your logic is spot on.',
+		'Amazing! You solved it like a pro.',
+		'Superb! Your sudoku skills are top-notch.',
 		"Incredible! You're getting really good at this.",
-		"Well done! That was beautifully solved.",
-		"Perfect! You nailed that puzzle."
+		'Well done! That was beautifully solved.',
+		'Perfect! You nailed that puzzle.',
 	];
 
 	// Get a random congratulations message
 	function getRandomMessage() {
-		return congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
+		return congratsMessages[
+			Math.floor(Math.random() * congratsMessages.length)
+		];
 	}
 
 	let currentMessage = getRandomMessage();
@@ -31,24 +33,36 @@
 </script>
 
 {#if isOpen}
-	<div class="modal-overlay" on:click={onClose} on:keydown role="button" tabindex="0">
-		<div class="modal-content" on:click|stopPropagation on:keydown role="button" tabindex="0">
+	<div
+		class="modal-overlay"
+		on:click={onClose}
+		on:keydown
+		role="button"
+		tabindex="0"
+	>
+		<div
+			class="modal-content"
+			on:click|stopPropagation
+			on:keydown
+			role="button"
+			tabindex="0"
+		>
 			<div class="celebration-icon">🎉</div>
-			
+
 			<h2>Puzzle Solved!</h2>
-			
+
 			<p class="congrats-message">{currentMessage}</p>
-			
+
 			<p class="suggestion">
-				Ready for a challenge? Try 
+				Ready for a challenge? Try
 				<strong>Competition Mode</strong> next time to test your speed!
 			</p>
-			
+
 			<div class="modal-actions">
-				<button class="new-game-button" on:click={onNewGame}>
+				<button class="btn btn-success new-game-button" on:click={onNewGame}>
 					New Game
 				</button>
-				<button class="continue-button" on:click={onClose}>
+				<button class="btn btn-outline continue-button" on:click={onClose}>
 					Cancel
 				</button>
 			</div>
@@ -63,23 +77,23 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background-color: rgba(0, 0, 0, 0.7);
+		background-color: var(--color-shadow-strong);
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		z-index: 1000;
+		z-index: var(--z-modal);
 		backdrop-filter: blur(3px);
 	}
 
 	.modal-content {
-		background: white;
-		border-radius: 16px;
-		padding: 2rem;
+		background: var(--color-surface);
+		border-radius: var(--radius-lg);
+		padding: var(--space-3xl);
 		max-width: 400px;
 		width: 90%;
 		text-align: center;
-		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-		animation: slideIn 0.3s ease-out;
+		box-shadow: var(--shadow-lg);
+		animation: slideIn var(--transition-smooth);
 	}
 
 	@keyframes slideIn {
@@ -94,8 +108,8 @@
 	}
 
 	.celebration-icon {
-		font-size: 3rem;
-		margin-bottom: 1rem;
+		font-size: var(--font-size-3xl);
+		margin-bottom: var(--space-xl);
 		animation: bounce 0.6s ease-in-out infinite alternate;
 	}
 
@@ -109,106 +123,48 @@
 	}
 
 	h2 {
-		color: #2d5016;
-		margin-bottom: 1rem;
-		font-size: 1.8rem;
-		font-weight: 700;
+		color: var(--color-new-game);
+		margin-bottom: var(--space-xl);
+		font-size: var(--font-size-3xl);
+		font-weight: var(--font-weight-bold);
 	}
 
 	.congrats-message {
-		font-size: 1.1rem;
-		color: #333;
-		margin-bottom: 1.5rem;
-		font-weight: 500;
+		font-size: var(--font-size-xl);
+		color: var(--color-text);
+		margin-bottom: var(--space-3xl);
+		font-weight: var(--font-weight-normal);
 		line-height: 1.4;
 	}
 
 	.suggestion {
-		color: #666;
-		margin-bottom: 2rem;
-		font-size: 0.95rem;
+		color: var(--color-text-muted);
+		margin-bottom: var(--space-3xl);
+		font-size: var(--font-size-md);
 		line-height: 1.5;
 	}
 
 	.suggestion strong {
-		color: #2d5016;
-		font-weight: 600;
+		color: var(--color-new-game);
+		font-weight: var(--font-weight-bold);
 	}
 
 	.modal-actions {
 		display: flex;
 		justify-content: center;
-		gap: 1rem;
-	}
-
-	.new-game-button, .continue-button {
-		border: none;
-		padding: 0.75rem 1.5rem;
-		border-radius: 25px;
-		font-size: 1rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
+		gap: var(--space-xl);
 	}
 
 	.new-game-button {
-		background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
-		color: white;
-		box-shadow: 0 4px 12px rgba(45, 80, 22, 0.3);
+		background: var(--gradient-new-game) !important;
+		border-radius: 25px !important;
 	}
 
 	.new-game-button:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 6px 16px rgba(45, 80, 22, 0.4);
+		background: var(--gradient-new-game-hover) !important;
 	}
 
 	.continue-button {
-		background: transparent;
-		color: #666;
-		border: 2px solid #ddd;
-	}
-
-	.continue-button:hover {
-		background: #f5f5f5;
-		border-color: #ccc;
-		transform: translateY(-1px);
-	}
-
-	.new-game-button:active, .continue-button:active {
-		transform: translateY(0);
-	}
-
-	/* Dark theme support */
-	@media (prefers-color-scheme: dark) {
-		.modal-content {
-			background: #1a1a1a;
-			color: #fff;
-		}
-
-		h2 {
-			color: #7fb069;
-		}
-
-		.congrats-message {
-			color: #e0e0e0;
-		}
-
-		.suggestion {
-			color: #b0b0b0;
-		}
-
-		.suggestion strong {
-			color: #7fb069;
-		}
-
-		.continue-button {
-			color: #b0b0b0;
-			border-color: #444;
-		}
-
-		.continue-button:hover {
-			background: #333;
-			border-color: #555;
-		}
+		border-radius: 25px !important;
 	}
 </style>

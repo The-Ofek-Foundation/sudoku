@@ -3,8 +3,25 @@
 // Export sudoku solver and types for use throughout the application
 export { default as sudoku } from './sudoku/sudoku';
 export { getTechniqueDifficulty, difficultyToCategory } from './sudoku/sudoku';
-export type { Square, Digit, Row, Column, Unit, Grid, Values, Candidates } from './sudoku/sudoku';
-export type { ComprehensiveHint, ErrorHint, MissingCandidateHint, SingleCellHint, NakedSetHint, HiddenSetHint, IntersectionRemovalHint } from './sudoku/sudoku';
+export type {
+	Square,
+	Digit,
+	Row,
+	Column,
+	Unit,
+	Grid,
+	Values,
+	Candidates,
+} from './sudoku/sudoku';
+export type {
+	ComprehensiveHint,
+	ErrorHint,
+	MissingCandidateHint,
+	SingleCellHint,
+	NakedSetHint,
+	HiddenSetHint,
+	IntersectionRemovalHint,
+} from './sudoku/sudoku';
 import type { Square, Digit } from './sudoku/sudoku';
 
 // Define shared UI types that work with the sudoku solver types
@@ -19,7 +36,13 @@ export type InputMode = 'normal' | 'note'; // Keep 'note' as UI term while using
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 // Export sharing utilities
-export { encodePuzzle, decodePuzzle, generateShareText, createShareableUrl, getChallengeFromUrl } from './share.js';
+export {
+	encodePuzzle,
+	decodePuzzle,
+	generateShareText,
+	createShareableUrl,
+	getChallengeFromUrl,
+} from './share.js';
 export type { PuzzleShare } from './share.js';
 
 // Helper function to convert between UI numbers (1-9) and sudoku solver digits ('1'-'9')
@@ -39,11 +62,14 @@ export function coordinatesToSquare(row: number, col: number): Square {
 }
 
 // Helper function to convert sudoku square notation to UI coordinates
-export function squareToCoordinates(square: Square): { row: number; col: number } {
+export function squareToCoordinates(square: Square): {
+	row: number;
+	col: number;
+} {
 	const rows = 'ABCDEFGHI';
 	const cols = '123456789';
 	return {
 		row: rows.indexOf(square[0]),
-		col: cols.indexOf(square[1])
+		col: cols.indexOf(square[1]),
 	};
 }

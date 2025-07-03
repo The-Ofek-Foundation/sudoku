@@ -8,5 +8,5 @@ export const colorKuColors: Record<number, string> = {
 	6: '#bdeffe',
 	7: '#0c3fcb',
 	8: '#ceacfc',
-	9: '#750b51'
+	9: '#750b51',
 };

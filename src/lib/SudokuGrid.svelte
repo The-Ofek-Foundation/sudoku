@@ -13,13 +13,21 @@
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 	export let gridSize: string = '600px';
-	export let highlightedSquares: { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[] | null = null;
-	
+	export let highlightedSquares:
+		| { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[]
+		| null = null;
+	export let showingHint: boolean = false; // New prop to indicate if hint is showing
+
 	// Pre-compute all cell highlights reactively
 	$: cellHighlights = (() => {
 		// Force reactivity - accessing highlightedSquares ensures this runs when it changes
-		if (highlightedSquares) { /* dependency tracking */ }
-		const highlights: Record<string, Array<'primary' | 'secondary' | 'elimination'>> = {};
+		if (highlightedSquares) {
+			/* dependency tracking */
+		}
+		const highlights: Record<
+			string,
+			Array<'primary' | 'secondary' | 'elimination'>
+		> = {};
 		for (let i = 0; i < 9; i++) {
 			for (let j = 0; j < 9; j++) {
 				highlights[`${i}-${j}`] = getCellHighlightTypes(i, j);
@@ -43,18 +51,21 @@
 	}
 
 	// Helper function to get highlight types for a cell (can be multiple)
-	function getCellHighlightTypes(row: number, col: number): Array<'primary' | 'secondary' | 'elimination'> {
+	function getCellHighlightTypes(
+		row: number,
+		col: number,
+	): Array<'primary' | 'secondary' | 'elimination'> {
 		if (!highlightedSquares) return [];
-		
+
 		const square = coordinatesToSquare(row, col);
 		const types: Array<'primary' | 'secondary' | 'elimination'> = [];
-		
+
 		for (const highlight of highlightedSquares) {
 			if (highlight.squares.includes(square)) {
 				types.push(highlight.type);
 			}
 		}
-		
+
 		return types;
 	}
 
@@ -78,57 +89,67 @@
 	}
 
 	function calculateOptimalGridSize() {
+		// Check if we're in a browser environment
+		if (typeof window === 'undefined') {
+			gridSize = '600px'; // Default size for SSR
+			return;
+		}
+
 		const viewportWidth = window.innerWidth;
 		const viewportHeight = window.innerHeight;
-		
-		// Estimate the height needed for controls panel and padding more accurately
-		// For mobile (max-height: 600px): Controls ~100px, Padding ~20px
-		// For desktop: Controls ~140px, Padding ~80px
+
+		// Estimate the height needed for controls/hints panel and padding more accurately
+		// Updated calculations based on real-world measurements
 		let controlsHeight, paddingHeight;
-		
+
 		if (viewportHeight <= 600) {
 			// Small screen mode
-			controlsHeight = 100;
-			paddingHeight = 20;
+			controlsHeight = showingHint ? 200 : 130; // Increased for hints
+			paddingHeight = 40;
 		} else if (viewportWidth <= 768) {
 			// Mobile mode
-			controlsHeight = 120;
-			paddingHeight = 40;
+			controlsHeight = showingHint ? 240 : 150;
+			paddingHeight = 60;
 		} else {
 			// Desktop mode
-			controlsHeight = 140;
-			paddingHeight = 80;
+			controlsHeight = showingHint ? 280 : 180; // More generous for hints
+			paddingHeight = 100;
 		}
-		
+
 		const availableHeight = viewportHeight - controlsHeight - paddingHeight;
-		
+
 		// Account for horizontal padding
 		const horizontalPadding = viewportWidth <= 768 ? 16 : 32;
 		const availableWidth = viewportWidth - horizontalPadding;
-		
+
 		// Choose the smaller dimension and ensure it doesn't exceed our max size
 		const maxSize = Math.min(availableHeight, availableWidth, 600);
-		
+
 		// Ensure minimum size for usability
-		const minSize = 240;
+		const minSize = 180; // Reduced further for very small screens
 		const optimalSize = Math.max(minSize, maxSize);
-		
+
 		gridSize = `${optimalSize}px`;
 	}
 
 	onMount(() => {
 		calculateOptimalGridSize();
-		
+
 		const handleResize = () => {
 			calculateOptimalGridSize();
 		};
-		
+
 		window.addEventListener('resize', handleResize);
-		
+
 		return () => {
 			window.removeEventListener('resize', handleResize);
 		};
 	});
+
+	// Recalculate grid size when hint state changes
+	$: if (typeof showingHint !== 'undefined') {
+		calculateOptimalGridSize();
+	}
 </script>
 
 <div class="grid-container" bind:this={gridContainer}>
@@ -146,10 +167,10 @@
 					class:error={errorCell && errorCell.row === i && errorCell.col === j}
 					on:click={() => selectCell(i, j)}
 				>
-					<Cell 
-						value={cell.value} 
-						candidates={cell.candidates} 
-						{gamePhase} 
+					<Cell
+						value={cell.value}
+						candidates={cell.candidates}
+						{gamePhase}
 						{highlightedNumber}
 						{colorKuMode}
 						hintHighlight={cellHighlights[`${i}-${j}`]}
@@ -173,16 +194,19 @@
 		display: grid;
 		grid-template-columns: repeat(9, 1fr);
 		grid-template-rows: repeat(9, 1fr);
-		border: 3px solid #343a40;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-		border-radius: 8px;
+		border: 3px solid var(--color-dark);
+		box-shadow: var(--shadow-md);
+		border-radius: var(--radius-sm);
 		overflow: hidden;
-		transition: width 0.3s ease, height 0.3s ease;
+		transition:
+			width var(--transition-smooth),
+			height var(--transition-smooth);
+		box-sizing: border-box;
 	}
 	.cell-wrapper {
 		position: relative;
 		cursor: pointer;
-		transition: background-color 0.1s ease-in-out;
+		transition: background-color var(--transition-fast);
 		background: none;
 		border: none;
 		padding: 0;
@@ -192,25 +216,31 @@
 		outline: none;
 	}
 	.cell-wrapper.highlighted {
-		background-color: #e8e8f2;
+		background-color: var(--color-light-hover);
 	}
 	.cell-wrapper.selected {
-		background-color: #d8d8e8;
+		background-color: var(--color-medium);
 	}
 	.cell-wrapper.error {
-		background-color: #ffebee;
-		border: 2px solid #f44336 !important;
+		background-color: var(--color-error);
+		border: 2px solid var(--color-error-border) !important;
 		animation: error-pulse 0.5s ease-in-out;
 	}
 	@keyframes error-pulse {
-		0% { background-color: #ffcdd2; }
-		50% { background-color: #ffebee; }
-		100% { background-color: #ffebee; }
+		0% {
+			background-color: var(--color-error-pulse);
+		}
+		50% {
+			background-color: var(--color-error);
+		}
+		100% {
+			background-color: var(--color-error);
+		}
 	}
 	.right-border {
-		border-right: 2px solid #343a40;
+		border-right: 2px solid var(--color-dark);
 	}
 	.bottom-border {
-		border-bottom: 2px solid #343a40;
+		border-bottom: 2px solid var(--color-dark);
 	}
 </style>

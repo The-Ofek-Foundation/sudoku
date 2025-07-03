@@ -76,170 +76,264 @@
 	}
 </script>
 
-<div class="control-bar" style="max-width: {gridSize}">
-	<div class="actions-row">
+<div class="card control-bar" style="width: {gridSize}">
+	<div class="flex items-center gap-lg flex-wrap actions-row">
 		{#if gamePhase === 'competition'}
-			<Timer 
+			<Timer
 				isRunning={isTimerRunning}
 				startTime={timerStartTime}
 				finalTime={timerFinalTime}
 				compact={true}
 			/>
 		{/if}
-		
+
 		{#if gamePhase === 'configuring'}
-			<div class="generate-group">
-				<button class="action-button generate-button" on:click={generatePuzzle}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-						<path d="M3 3v5h5"/>
-						<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-						<path d="M21 21v-5h-5"/>
-					</svg>
-					<span>Generate</span>
-				</button>
-				<select bind:value={difficulty} class="difficulty-compact">
-					<option value="easy">Easy</option>
-					<option value="medium">Medium</option>
-					<option value="hard">Hard</option>
-				</select>
-			</div>
-			<div class="start-group">
-				<button class="action-button start-button" on:click={startGame}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<polygon points="5,3 19,12 5,21"></polygon>
-					</svg>
-					<span>Start</span>
-				</button>
-				<select bind:value={startMode} class="start-mode-compact">
-					<option value="normal">Normal</option>
-					<option value="manual">Manual</option>
-					<option value="competition">Competition</option>
-				</select>
-			</div>
-			<button class="action-button icon-button" on:click={handleDelete} aria-label="Delete">
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M3 6h18"/>
-					<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-					<path d="M8 6V4c0-1 1-2 2-2h4c0 1 1 2 2 2v2"/>
-					<line x1="10" y1="11" x2="10" y2="17"/>
-					<line x1="14" y1="11" x2="14" y2="17"/>
-				</svg>
-			</button>
-			<button class="action-button share-button" on:click={share} aria-label="Share puzzle">
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="18" cy="5" r="3"/>
-					<circle cx="6" cy="12" r="3"/>
-					<circle cx="18" cy="19" r="3"/>
-					<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-					<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-				</svg>
-				<span>Share</span>
-			</button>
-		{:else}
-			{#if isGameCompleted}
-				<!-- Game completed - show New Game button and limited options -->
-				<button class="action-button new-game-button" on:click={onNewGame}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-						<path d="M3 3v5h5"/>
-						<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-						<path d="M21 21v-5h-5"/>
-					</svg>
-					<span>New Game</span>
-				</button>
-				{#if gamePhase === 'competition'}
-					<button class="action-button share-button" on:click={share} aria-label="Share result">
-						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<circle cx="18" cy="5" r="3"/>
-							<circle cx="6" cy="12" r="3"/>
-							<circle cx="18" cy="19" r="3"/>
-							<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-							<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-						</svg>
-						<span>Share</span>
-					</button>
-				{/if}
-			{:else}
-				<!-- Game in progress - show normal controls -->
-				<div class="note-mode-toggle">
-					<span class="toggle-label" class:active={!isNoteMode}>Normal</span>
-					<button 
-						class="toggle-switch" 
-						class:active={isNoteMode}
-						class:disabled={errorCell && gamePhase === 'solving'}
-						disabled={errorCell !== null && gamePhase === 'solving'}
-						on:click={toggleNoteMode}
-						aria-label="Toggle note mode"
-						role="switch"
-						aria-checked={isNoteMode}
-					>
-						<span class="toggle-slider"></span>
-					</button>
-					<span class="toggle-label" class:active={isNoteMode}>Note</span>
-				</div>
-				<button class="action-button" class:error={errorCell && gamePhase === 'solving'} on:click={undo}>
+			<div class="control-group generate-group">
+				<button class="btn generate-button flex-1" on:click={generatePuzzle}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						width="24"
-						height="24"
+						width="16"
+						height="16"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
 						stroke-width="2"
 						stroke-linecap="round"
 						stroke-linejoin="round"
-						><polyline points="9 14 4 9 9 4"></polyline><path
-							d="M20 20v-7a4 4 0 0 0-4-4H4"
-						></path></svg
 					>
-					<span>Undo</span>
-				</button>
-				<button 
-					class="action-button hint-button" 
-					class:disabled={errorCell && gamePhase === 'solving'}
-					disabled={errorCell !== null && gamePhase === 'solving'}
-					on:click={getHint}
-					aria-label="Get hint"
-					title="Get hint"
-					style:display={gamePhase === 'competition' ? 'none' : 'inline-flex'}
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M9 21h6"/>
-						<path d="M12 17c-3.314 0-6-2.686-6-6 0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6z"/>
-						<path d="M10 19h4"/>
+						<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+						<path d="M3 3v5h5" />
+						<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+						<path d="M21 21v-5h-5" />
 					</svg>
+					<span>Generate</span>
+				</button>
+				<select
+					bind:value={difficulty}
+					class="select-compact difficulty-compact"
+				>
+					<option value="easy">Easy</option>
+					<option value="medium">Medium</option>
+					<option value="hard">Hard</option>
+				</select>
+			</div>
+			<div class="control-group start-group">
+				<button class="btn start-button flex-1" on:click={startGame}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<polygon points="5,3 19,12 5,21"></polygon>
+					</svg>
+					<span>Start</span>
+				</button>
+				<select
+					bind:value={startMode}
+					class="select-compact start-mode-compact"
+				>
+					<option value="normal">Normal</option>
+					<option value="manual">Manual</option>
+					<option value="competition">Competition</option>
+				</select>
+			</div>
+			<button class="btn btn--icon" on:click={handleDelete} aria-label="Delete">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 6h18" />
+					<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+					<path d="M8 6V4c0-1 1-2 2-2h4c0 1 1 2 2 2v2" />
+					<line x1="10" y1="11" x2="10" y2="17" />
+					<line x1="14" y1="11" x2="14" y2="17" />
+				</svg>
+			</button>
+			<button
+				class="btn btn--info share-button"
+				on:click={share}
+				aria-label="Share puzzle"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<circle cx="18" cy="5" r="3" />
+					<circle cx="6" cy="12" r="3" />
+					<circle cx="18" cy="19" r="3" />
+					<line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+					<line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+				</svg>
+				<span>Share</span>
+			</button>
+		{:else if isGameCompleted}
+			<!-- Game completed - show New Game button and limited options -->
+			<button class="btn btn--new-game" on:click={onNewGame}>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+					<path d="M3 3v5h5" />
+					<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+					<path d="M21 21v-5h-5" />
+				</svg>
+				<span>New Game</span>
+			</button>
+			{#if gamePhase === 'competition'}
+				<button
+					class="btn btn--info share-button"
+					on:click={share}
+					aria-label="Share result"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<circle cx="18" cy="5" r="3" />
+						<circle cx="6" cy="12" r="3" />
+						<circle cx="18" cy="19" r="3" />
+						<line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+						<line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+					</svg>
+					<span>Share</span>
 				</button>
 			{/if}
+		{:else}
+			<!-- Game in progress - show normal controls -->
+			<div class="toggle-container">
+				<span class="toggle-label" class:active={!isNoteMode}>Normal</span>
+				<button
+					class="toggle-switch"
+					class:active={isNoteMode}
+					class:disabled={errorCell && gamePhase === 'solving'}
+					disabled={errorCell !== null && gamePhase === 'solving'}
+					on:click={toggleNoteMode}
+					aria-label="Toggle note mode"
+					role="switch"
+					aria-checked={isNoteMode}
+				>
+					<span class="toggle-slider"></span>
+				</button>
+				<span class="toggle-label" class:active={isNoteMode}>Note</span>
+			</div>
+			<button
+				class="btn"
+				class:btn--error={errorCell && gamePhase === 'solving'}
+				on:click={undo}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><polyline points="9 14 4 9 9 4"></polyline><path
+						d="M20 20v-7a4 4 0 0 0-4-4H4"
+					></path></svg
+				>
+				<span>Undo</span>
+			</button>
+			<button
+				class="btn btn--warning hint-button"
+				class:disabled={errorCell && gamePhase === 'solving'}
+				disabled={errorCell !== null && gamePhase === 'solving'}
+				on:click={getHint}
+				aria-label="Get hint"
+				title="Get hint"
+				style:display={gamePhase === 'competition' ? 'none' : 'inline-flex'}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M9 21h6" />
+					<path
+						d="M12 17c-3.314 0-6-2.686-6-6 0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6z"
+					/>
+					<path d="M10 19h4" />
+				</svg>
+			</button>
 		{/if}
-		
+
 		<!-- ColorKu Mode Toggle - Available in all phases -->
-		<button 
-			class="action-button colorku-button" 
+		<button
+			class="btn colorku-button"
 			class:active={colorKuMode}
-			on:click={() => colorKuMode = !colorKuMode}
+			on:click={() => (colorKuMode = !colorKuMode)}
 			aria-label="Toggle ColorKu mode"
 		>
 			<span>ColorKu</span>
 		</button>
 	</div>
 
-	<div class="number-palette">
+	<div class="number-grid number-palette">
 		{#each Array(9) as _, i}
 			{#if (numberCounts[i + 1] || 0) < 9}
-				<button 
-					class="number-button" 
-					class:disabled={(errorCell && gamePhase === 'solving') || isGameCompleted}
+				<button
+					class="number-button"
+					class:disabled={(errorCell && gamePhase === 'solving') ||
+						isGameCompleted}
 					class:highlighted={highlightedNumber === i + 1 && !isGameCompleted}
-					class:note-highlighted={selectedCellCandidates.has(i + 1) && !isGameCompleted}
-					class:dulled={colorKuMode && selectedCellCandidates.size > 0 && !selectedCellCandidates.has(i + 1)}
-					disabled={(errorCell !== null && gamePhase === 'solving') || isGameCompleted}
+					class:note-highlighted={selectedCellCandidates.has(i + 1) &&
+						!isGameCompleted}
+					class:dulled={colorKuMode &&
+						selectedCellCandidates.size > 0 &&
+						!selectedCellCandidates.has(i + 1)}
+					disabled={(errorCell !== null && gamePhase === 'solving') ||
+						isGameCompleted}
 					on:click={() => handleInput(i + 1)}
 				>
 					{#if colorKuMode}
-						<div 
+						<div
 							class="palette-color-circle"
-							class:dulled={selectedCellCandidates.size > 0 && !selectedCellCandidates.has(i + 1)}
+							class:dulled={selectedCellCandidates.size > 0 &&
+								!selectedCellCandidates.has(i + 1)}
 							style="background-color: {colorKuColors[i + 1]}"
 						></div>
 					{:else}
@@ -254,295 +348,69 @@
 </div>
 
 <style>
+	/* Component-specific styles that extend the design system */
 	.control-bar {
-		background-color: #ffffff;
-		padding: 0.75rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 		width: 100%;
-		box-sizing: border-box;
-		margin-top: 1rem; /* Reduced from 1rem */
+		margin-top: var(--space-xl);
 		flex-shrink: 0; /* Prevent shrinking on mobile */
+		padding: var(--space-lg); /* Add proper padding */
+		box-sizing: border-box; /* Include padding in width calculation */
 	}
 
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
 		.control-bar {
-			padding: 0.5rem;
-			margin-top: 0.5rem;
-			border-radius: 8px;
+			margin-top: var(--space-md);
+			padding: var(--space-md); /* Smaller padding on mobile */
 		}
 	}
 
 	/* Small screen adjustments for very tight spaces */
 	@media (max-height: 600px) {
 		.control-bar {
-			padding: 0.375rem;
-			margin-top: 0.25rem;
+			margin-top: var(--space-xs);
+			padding: var(--space-sm); /* Even smaller padding on small screens */
 		}
 	}
+
 	.actions-row {
-		display: flex;
-		justify-content: flex-start;
-		align-items: center;
-		gap: 0.75rem;
-		margin-bottom: 0.75rem; /* Reduced from 1rem */
-		flex-wrap: wrap; /* Allow wrapping on smaller screens */
+		margin-bottom: var(--space-lg);
 	}
 
 	/* Small screen adjustments */
 	@media (max-height: 600px) {
 		.actions-row {
-			gap: 0.5rem;
-			margin-bottom: 0.5rem;
+			margin-bottom: var(--space-md);
 		}
 	}
 
-	.generate-group {
-		display: flex;
-		align-items: stretch;
-		border-radius: 8px;
-		overflow: hidden;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	/* Add top margin to number grid for spacing */
+	.number-palette {
+		margin-top: var(--space-md);
 	}
 
-	.start-group {
-		display: flex;
-		align-items: stretch;
-		border-radius: 8px;
-		overflow: hidden;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	}
-
-	.generate-button {
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
-		border-right: none;
-		flex: 1;
-	}
-
-	.new-game-button {
-		background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
-		color: white;
-		border: 1px solid #2d5016;
-	}
-
-	.new-game-button:hover {
-		background: linear-gradient(135deg, #5a8c69 0%, #3d6026 100%);
-		transform: translateY(-1px);
-	}
-
-	.start-button {
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
-		border-right: none;
-		flex: 1;
-	}
-
+	/* Specific overrides for compact selects */
 	.difficulty-compact {
-		padding: 0.5rem 0.75rem;
-		border: 1px solid #dee2e6;
-		border-left: none;
-		background-color: #f8f9fa;
-		color: #495057;
-		font-size: 0.85rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-		border-top-right-radius: 8px;
-		border-bottom-right-radius: 8px;
 		min-width: 80px;
 	}
 
 	.start-mode-compact {
-		padding: 0.5rem 0.75rem;
-		border: 1px solid #dee2e6;
-		border-left: none;
-		background-color: #f8f9fa;
-		color: #495057;
-		font-size: 0.85rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-		border-top-right-radius: 8px;
-		border-bottom-right-radius: 8px;
 		min-width: 100px;
 	}
-
-	.difficulty-compact:hover {
-		background-color: #e9ecef;
-		border-color: #ced4da;
-	}
-
-	.difficulty-compact:focus {
-		outline: none;
-		border-color: #80bdff;
-		box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-	}
-
-	.start-mode-compact:hover {
-		background-color: #e9ecef;
-		border-color: #ced4da;
-	}
-
-	.start-mode-compact:focus {
-		outline: none;
-		border-color: #80bdff;
-		box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-	}
-	.action-button {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		border: 1px solid #dee2e6;
-		background-color: #fff;
-		color: #495057;
-		border-radius: 8px;
-		font-size: 0.9rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition:
-			background-color 0.2s,
-			box-shadow 0.2s;
-	}
-	.action-button:hover {
-		background-color: #f8f9fa;
-		border-color: #ced4da;
-	}
-	.action-button.error {
-		background-color: #ffebee;
-		border-color: #f44336;
-		color: #c62828;
-		animation: error-pulse 1s ease-in-out infinite;
-	}
-	.action-button.error:hover {
-		background-color: #ffcdd2;
-		border-color: #d32f2f;
-	}
-	.action-button svg {
-		width: 1.1em;
-		height: 1.1em;
-	}
-
-	.icon-button {
-		padding: 0.5rem;
-		min-width: auto;
-		aspect-ratio: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.colorku-button {
-		background-color: #f8f9fa;
-		border-color: #e9ecef;
-		transition: all 0.2s ease;
-	}
-
-	.colorku-button:hover {
-		background-color: #e9ecef;
-		border-color: #ced4da;
-	}
-
-	.colorku-button.active {
-		background-color: #28a745;
-		border-color: #28a745;
-		color: white;
-	}
-
-	.colorku-button.active:hover {
-		background-color: #218838;
-		border-color: #1e7e34;
-	}
-
-	.hint-button {
-		background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-		border-color: #ffc107;
-		color: #212529;
-		transition: all 0.2s ease;
-	}
-
-	.hint-button:hover {
-		background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%);
-		border-color: #ffb300;
-		color: #212529;
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-	}
-
-	.hint-button.disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		transform: none;
-		box-shadow: none;
-	}
-
-	.hint-button:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		transform: none;
-		box-shadow: none;
-	}
-
-	.hint-button:disabled:hover {
-		background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-		border-color: #ffc107;
-		color: #212529;
-		transform: none;
-		box-shadow: none;
-	}
-
-	.share-button {
-		background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
-		border-color: #17a2b8;
-		color: white;
-		transition: all 0.2s ease;
-	}
-
-	.share-button:hover {
-		background: linear-gradient(135deg, #138496 0%, #1e7e34 100%);
-		border-color: #138496;
-		color: white;
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-	}
-	.number-palette {
-		display: grid;
-		grid-template-columns: repeat(9, 1fr);
-		gap: 0.375rem; /* Reduced from 1rem */
-	}
-
-	/* Mobile adjustments for number palette */
-	@media (max-width: 768px) {
-		.number-palette {
-			gap: 0.25rem;
-		}
-	}
-
-	/* Small screen adjustments */
-	@media (max-height: 600px) {
-		.number-palette {
-			gap: 0.2rem;
-		}
-	}
+	/* Number button customizations */
 	.number-button {
-		padding: 0.5rem 0; /* Reduced padding */
-		font-size: 1.8rem; /* Increased font size */
-		font-weight: 100; /* Much thinner font weight */
-		font-family: inherit; /* Use the same font as the rest of the app */
+		padding: var(--space-md) 0;
+		font-size: var(--font-size-3xl);
+		font-weight: var(--font-weight-thin);
+		font-family: inherit;
 		border: none;
-		background-color: #e9ecef;
-		color: #495057;
-		border-radius: 8px;
+		background-color: var(--color-medium);
+		color: var(--color-dark);
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition:
-			background-color 0.2s,
-			color 0.2s;
+			background-color var(--transition-fast),
+			color var(--transition-fast);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -551,166 +419,99 @@
 	/* Small screen adjustments for number buttons */
 	@media (max-height: 600px) {
 		.number-button {
-			padding: 0.3rem 0;
-			font-size: 1.4rem;
-			font-weight: 100; /* Keep very thin weight on small screens */
-			font-family: inherit; /* Consistent font on small screens */
+			padding: var(--space-sm) 0;
+			font-size: var(--font-size-xl);
 		}
 	}
+
 	.number-button:hover {
-		background-color: #ced4da;
-		color: #212529;
+		background-color: var(--color-medium-hover);
+		color: var(--color-text);
 	}
+
 	.number-button.highlighted {
-		color: #1976d2; /* Blue color for highlighted numbers */
-		font-weight: 300; /* Increase font weight when highlighted */
-		background-color: #e3f2fd; /* Light blue background */
+		color: var(--color-highlight-text);
+		font-weight: var(--font-weight-light);
+		background-color: var(--color-highlight);
 	}
+
 	.number-button.highlighted:hover {
-		background-color: #bbdefb; /* Darker blue on hover when highlighted */
-		color: #1565c0;
+		background-color: var(--color-highlight-hover);
+		color: var(--color-highlight-hover-text);
 	}
+
 	.number-button.note-highlighted {
-		background-color: #f3e5f5; /* Light purple background for note highlighting */
-		border: 2px solid #9c27b0; /* Purple border */
-		color: #7b1fa2; /* Purple text */
+		background-color: var(--color-note-highlight);
+		border: 2px solid var(--color-note-border);
+		color: var(--color-note-text);
 	}
+
 	.number-button.note-highlighted:hover {
-		background-color: #e1bee7; /* Darker purple on hover */
-		color: #6a1b9a;
+		background-color: var(--color-note-hover);
+		color: var(--color-note-hover-text);
 	}
-	/* When both highlighted and note-highlighted, prioritize the main highlight */
+
 	.number-button.highlighted.note-highlighted {
-		background-color: #e3f2fd;
-		border: 2px solid #1976d2;
-		color: #1976d2;
+		background-color: var(--color-highlight);
+		border: 2px solid var(--color-highlight-text);
+		color: var(--color-highlight-text);
 	}
+
 	.number-button.disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
 	}
+
 	.number-button:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
 	}
+
 	.number-button:disabled:hover {
-		background-color: #e9ecef;
-		color: #495057;
+		background-color: var(--color-medium);
+		color: var(--color-dark);
 	}
+
 	.number-button.dulled {
 		opacity: 0.65;
-		transition: opacity 0.2s ease;
+		transition: opacity var(--transition-fast);
 	}
 
 	.number-button-placeholder {
-		/* Empty placeholder to maintain grid layout */
 		grid-column: span 1;
 	}
-	.note-mode-toggle {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.25rem 0.75rem;
-		background-color: #f8f9fa;
-		border-radius: 12px;
-		border: 1px solid #e9ecef;
+
+	/* ColorKu button customizations */
+	.colorku-button {
+		background-color: var(--color-light);
+		border-color: var(--color-medium);
+		transition: all var(--transition-fast);
 	}
 
-	.toggle-label {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #6c757d;
-		transition: color 0.3s ease;
-		user-select: none;
+	.colorku-button:hover {
+		background-color: var(--color-light-hover);
+		border-color: var(--color-medium-hover);
 	}
 
-	.toggle-label.active {
-		color: #495057;
-		font-weight: 600;
+	.colorku-button.active {
+		background-color: var(--color-success);
+		border-color: var(--color-success);
+		color: var(--color-white);
 	}
 
-	.toggle-switch {
-		position: relative;
-		width: 54px;
-		height: 28px;
-		background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-		border: 2px solid #ced4da;
-		border-radius: 16px;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-		display: flex;
-		align-items: center;
-		outline: none;
-		box-shadow: 
-			inset 0 2px 4px rgba(0, 0, 0, 0.1),
-			0 1px 2px rgba(0, 0, 0, 0.05);
+	.colorku-button.active:hover {
+		background-color: var(--color-success-hover);
+		border-color: var(--color-success-hover);
 	}
 
-	.toggle-switch:hover {
-		border-color: #adb5bd;
-		box-shadow: 
-			inset 0 2px 4px rgba(0, 0, 0, 0.15),
-			0 2px 4px rgba(0, 0, 0, 0.1);
-	}
-
-	.toggle-switch:focus {
-		border-color: #80bdff;
-		box-shadow: 
-			inset 0 2px 4px rgba(0, 0, 0, 0.1),
-			0 0 0 3px rgba(0, 123, 255, 0.25);
-	}
-
-	.toggle-switch.active {
-		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-		border-color: #28a745;
-		box-shadow: 
-			inset 0 2px 4px rgba(0, 0, 0, 0.2),
-			0 2px 8px rgba(40, 167, 69, 0.3);
-	}
-
-	.toggle-switch.active:hover {
-		background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
-		border-color: #1e7e34;
-	}
-
-	.toggle-slider {
-		position: absolute;
-		width: 20px;
-		height: 20px;
-		background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-		border: 1px solid rgba(0, 0, 0, 0.1);
-		border-radius: 50%;
-		left: 3px;
-		transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-		box-shadow: 
-			0 2px 4px rgba(0, 0, 0, 0.2),
-			0 1px 2px rgba(0, 0, 0, 0.1);
-	}
-
-	.toggle-switch.active .toggle-slider {
-		transform: translateX(26px);
-		background: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
-		box-shadow: 
-			0 3px 6px rgba(0, 0, 0, 0.3),
-			0 1px 3px rgba(0, 0, 0, 0.2);
-	}
-
-	.toggle-switch.disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-	.toggle-switch:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
+	/* Color circle styling */
 	.palette-color-circle {
 		width: 32px;
 		height: 32px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		border: 2px solid rgba(0, 0, 0, 0.1);
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-		transition: all 0.2s ease;
+		transition: all var(--transition-fast);
 	}
 
 	.palette-color-circle.dulled {
@@ -727,49 +528,13 @@
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
 		.number-button {
-			padding: 0.375rem 0;
-			font-size: 1.5rem;
-			font-weight: 100; /* Keep very thin weight on mobile */
-			font-family: inherit; /* Consistent font on mobile */
+			padding: var(--space-sm) 0;
+			font-size: var(--font-size-2xl);
 		}
-		
+
 		.palette-color-circle {
 			width: 24px;
 			height: 24px;
-		}
-		
-		.actions-row {
-			gap: 0.5rem;
-			margin-bottom: 0.5rem;
-		}
-		
-		.action-button {
-			padding: 0.375rem 0.75rem;
-			font-size: 0.8rem;
-		}
-
-		.icon-button {
-			padding: 0.375rem;
-		}
-
-		.generate-button {
-			padding: 0.375rem 0.5rem;
-		}
-
-		.start-button {
-			padding: 0.375rem 0.5rem;
-		}
-
-		.difficulty-compact {
-			padding: 0.375rem 0.5rem;
-			font-size: 0.75rem;
-			min-width: 70px;
-		}
-
-		.start-mode-compact {
-			padding: 0.375rem 0.5rem;
-			font-size: 0.75rem;
-			min-width: 90px;
 		}
 	}
 </style>
