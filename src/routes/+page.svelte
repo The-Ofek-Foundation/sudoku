@@ -40,6 +40,7 @@
 		isCorrectPlacement,
 		type SimpleValidationResult,
 	} from '$lib/utils/boardUtils.js';
+	import { gamePhaseManager, type GamePhaseContext } from '$lib/gamePhases';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
@@ -84,6 +85,35 @@
 
 	let board: CellData[][] = createEmptyBoard();
 
+	// Helper function to create context for game phase handlers
+	function createGameContext(): GamePhaseContext {
+		return {
+			board,
+			selectedCell,
+			inputMode,
+			solution,
+			errorCell,
+			saveToHistory,
+			updateCandidatesAfterPlacement,
+			isCorrectPlacement,
+			isPuzzleComplete,
+			checkPuzzleComplete,
+			onGameCompleted: () => {
+				isGameCompleted = true;
+				showCongratulationsModal = true;
+			},
+			onError: (error) => {
+				errorCell = error;
+			},
+			onTimerComplete: (finalTime) => {
+				isTimerRunning = false;
+				timerFinalTime = finalTime;
+			},
+			timerStartTime,
+			isTimerRunning,
+		};
+	}
+
 	function updateHighlightedNumber(row: number, col: number) {
 		const cellValue = board[row][col].value;
 		if (cellValue !== null) {
@@ -121,27 +151,8 @@
 	}
 
 	function isPuzzleComplete(): boolean {
-		// Check if all cells are filled
-		if (!checkPuzzleComplete(board)) {
-			return false;
-		}
-
-		// In competition mode, also verify the solution is correct
-		if (gamePhase === 'competition') {
-			for (let row = 0; row < 9; row++) {
-				for (let col = 0; col < 9; col++) {
-					const cellValue = board[row][col].value;
-					if (
-						cellValue === null ||
-						!isCorrectPlacement(solution, row, col, cellValue)
-					) {
-						return false;
-					}
-				}
-			}
-		}
-
-		return true;
+		const context = createGameContext();
+		return gamePhaseManager.validateCompletion(gamePhase, context);
 	}
 
 	function getAvailableNumbersForCycling(): number[] {
@@ -229,126 +240,46 @@
 		highlightedNumber = num;
 
 		// If there's an error, don't allow any input until undo is pressed (only in solving mode)
-		if (errorCell && gamePhase === 'solving') return;
+		if (errorCell && gamePhaseManager.supportsErrorChecking(gamePhase)) return;
 
-		if (selectedCell) {
-			const { row, col } = selectedCell;
-			if (gamePhase === 'configuring') {
-				board[row][col].value = num;
-				// Trigger reactivity
-				board = board;
-			} else if (gamePhase === 'manual') {
-				// Manual mode: no restrictions, no error checking, no automatic note updates
-				if (inputMode === 'normal' && !board[row][col].isInitial) {
-					saveToHistory();
-					board[row][col].value = num;
-					board[row][col].candidates.clear();
+		if (!selectedCell) return;
 
-					// Check if puzzle is complete
-					if (isPuzzleComplete()) {
-						isGameCompleted = true;
-						showCongratulationsModal = true;
-					}
+		const handler = gamePhaseManager.getHandler(gamePhase);
+		const context = createGameContext();
 
-					// Trigger reactivity
-					board = board;
-				} else if (inputMode === 'note' && !board[row][col].isInitial) {
-					saveToHistory();
-					if (board[row][col].candidates.has(num)) {
-						board[row][col].candidates.delete(num);
-					} else {
-						board[row][col].candidates.add(num);
-					}
-					// Trigger reactivity
-					board = board;
-				}
-			} else if (gamePhase === 'competition') {
-				// Competition mode: automatic candidate maintenance, no error detection, no hints
-				if (inputMode === 'normal' && !board[row][col].isInitial) {
-					// Only allow input if cell is empty
-					if (board[row][col].value === null) {
-						saveToHistory();
-						board[row][col].value = num;
-						board[row][col].candidates.clear();
+		const result =
+			inputMode === 'normal'
+				? handler.handleNormalInput(context, num)
+				: handler.handleNoteInput(context, num);
 
-						// Always update candidates in related cells (no error checking)
-						updateCandidatesAfterPlacement(board, row, col, num);
+		// Apply the results
+		board = result.board;
 
-						// Check if puzzle is complete
-						if (isPuzzleComplete()) {
-							// Stop timer and record final time
-							isTimerRunning = false;
-							timerFinalTime = Date.now() - timerStartTime!;
-							isGameCompleted = true;
-							// Show congratulations modal for competition mode too
-							showCongratulationsModal = true;
-						}
-						// Trigger reactivity
-						board = board;
-					}
-					// Keep the cell selected and number highlighted for continued placement
-				} else if (inputMode === 'note' && !board[row][col].isInitial) {
-					// Note mode in competition phase
-					saveToHistory();
-					if (board[row][col].candidates.has(num)) {
-						board[row][col].candidates.delete(num);
-					} else {
-						board[row][col].candidates.add(num);
-					}
-					// Trigger reactivity
-					board = board;
-					// Keep the cell selected and number highlighted for continued note placement
-				}
-			} else if (inputMode === 'normal' && !board[row][col].isInitial) {
-				// Solving mode with error checking
-				// Only allow input if cell is empty
-				if (board[row][col].value === null) {
-					saveToHistory();
-					board[row][col].value = num;
-					board[row][col].candidates.clear();
-
-					// Check if the placement is correct
-					if (!isCorrectPlacement(solution, row, col, num)) {
-						errorCell = { row, col };
-					} else {
-						// Automatically update candidates in related cells only if correct
-						updateCandidatesAfterPlacement(board, row, col, num);
-
-						// Check if puzzle is complete
-						if (isPuzzleComplete()) {
-							isGameCompleted = true;
-							showCongratulationsModal = true;
-						}
-					}
-					// Trigger reactivity
-					board = board;
-				}
-				// Keep the cell selected and number highlighted for continued placement
-			} else if (inputMode === 'note' && !board[row][col].isInitial) {
-				// Note mode in solving phase
-				saveToHistory();
-				if (board[row][col].candidates.has(num)) {
-					board[row][col].candidates.delete(num);
-				} else {
-					board[row][col].candidates.add(num);
-				}
-				// Trigger reactivity
-				board = board;
-				// Keep the cell selected and number highlighted for continued note placement
-			}
-			// Keep the cell selected and number highlighted even if cell can't be modified
+		if (result.errorCell !== undefined) {
+			errorCell = result.errorCell;
 		}
-		// If no cell is selected, just highlight the number (no change in behavior)
+
+		if (result.timerStopped) {
+			isTimerRunning = false;
+			if (result.finalTime) {
+				timerFinalTime = result.finalTime;
+			}
+		}
+
+		if (result.gameCompleted) {
+			isGameCompleted = true;
+			showCongratulationsModal = true;
+		}
 	}
 
 	function handleDelete() {
-		// Only allow deletion during configuration phase
-		if (selectedCell && gamePhase === 'configuring') {
-			const { row, col } = selectedCell;
-			board[row][col].value = null;
-			// Trigger reactivity
-			board = board;
-		}
+		if (!selectedCell || !gamePhaseManager.canDeleteCells(gamePhase)) return;
+
+		const handler = gamePhaseManager.getHandler(gamePhase);
+		if (!handler.handleDelete) return;
+
+		const result = handler.handleDelete(createGameContext());
+		board = result.board;
 	}
 
 	function startGame() {
@@ -461,8 +392,8 @@
 	}
 
 	function getHint() {
-		// Only available in solving and manual modes (not competition)
-		if (gamePhase !== 'solving' && gamePhase !== 'manual') return;
+		// Only available in phases that support hints
+		if (!gamePhaseManager.supportsHints(gamePhase)) return;
 
 		// Close any existing hint first
 		closeHint();

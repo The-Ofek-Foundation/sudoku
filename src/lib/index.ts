@@ -39,6 +39,14 @@ export type GamePhase = 'configuring' | 'solving' | 'manual' | 'competition';
 export type InputMode = 'normal' | 'note'; // Keep 'note' as UI term while using 'candidates' internally
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+// Export game phase management
+export { gamePhaseManager } from './gamePhases/index.js';
+export type {
+	GamePhaseHandler,
+	GamePhaseContext,
+	GamePhaseResult,
+} from './gamePhases/index.js';
+
 // Export sharing utilities
 export {
 	encodePuzzle,
