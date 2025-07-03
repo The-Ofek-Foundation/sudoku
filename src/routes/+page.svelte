@@ -64,9 +64,20 @@
 			highlightedNumber = cellValue;
 			cyclingNumber = null; // Reset cycling for cells with values
 		} else if ((gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[row][col].candidates.size > 0) {
-			// Cell has no value but has candidates during solving/manual/competition phase - auto-start cycling
+			// Cell has no value but has candidates during solving/manual/competition phase
+			// Check if we should preserve the current highlighted number
+			if (highlightedNumber !== null) {
+				// Keep current highlighted number if it's valid for this cell
+				if (inputMode === 'note' || board[row][col].candidates.has(highlightedNumber)) {
+					// In note mode, all numbers are valid, or the highlighted number is a valid candidate
+					// Keep the current highlighted number and set it as cycling number
+					cyclingNumber = highlightedNumber;
+					return;
+				}
+			}
+			// If no valid highlighted number, auto-start cycling with the first available number
 			highlightedNumber = null;
-			startCycling(); // Automatically start cycling with the first available number
+			startCycling();
 		} else {
 			// Cell is empty with no candidates, or we're in config phase
 			highlightedNumber = null;
@@ -872,6 +883,11 @@
 			} else if (event.key.toLowerCase() === 'c' && !event.ctrlKey) {
 				// Toggle ColorKu mode (available in all phases, but not when Ctrl is pressed)
 				colorKuMode = !colorKuMode;
+			} else if (event.key.toLowerCase() === 'z' && event.ctrlKey) {
+				// Ctrl+Z for undo (available in all phases that support undo)
+				if (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') {
+					undo();
+				}
 			} else if (gamePhase === 'configuring') {
 				// Configuration phase hotkeys
 				if (event.key.toLowerCase() === 'g') {

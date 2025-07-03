@@ -86,7 +86,12 @@
 		if (colorKuMode) {
 			return digits.map(d => formatDigit(d)).join(', ');
 		}
-		return digits.join(', ');
+
+		if (digits.length <= 2) {
+			return digits.join(' and ');
+		}
+
+		return digits.slice(0, -1).join(', ') + ', and ' + digits[digits.length - 1];
 	}
 	
 	// Helper function to get the word "number" or "color"
@@ -97,6 +102,14 @@
 	// Helper function to get the plural word "numbers" or "colors"  
 	function getDigitWordPlural(): string {
 		return colorKuMode ? 'colors' : 'numbers';
+	}
+
+	function getDigitWordCapitalized(): string {
+		return getDigitWord().charAt(0).toUpperCase() + getDigitWord().slice(1);
+	}
+
+	function getDigitWordPluralCapitalized(): string {
+		return getDigitWordPlural().charAt(0).toUpperCase() + getDigitWordPlural().slice(1);
 	}
 	
 	// Stage progression functions
@@ -206,71 +219,96 @@
 	function getStageDescription(currentStage: typeof stage): string {
 		if (currentStage === 1) {
 			// Stage 1: Explain what the technique is
-			const explanations: Record<string, string> = {
-				'incorrect_value': `An incorrect value was detected. This value violates Sudoku rules by appearing twice in the same row, column, or box.`,
-				'missing_candidate': `A cell is missing a valid candidate ${getDigitWord()}. This ${getDigitWord()} should be penciled in as a possibility based on the current board state.`,
-				'last_remaining_in_box': `One of the ${getDigitWordPlural()} has only one possible location remaining in a box. This ${getDigitWord()} must go in that specific cell.`,
-				'last_remaining_in_row': `One of the ${getDigitWordPlural()} has only one possible location remaining in a column. This ${getDigitWord()} must go in that specific cell.`,
-				'last_remaining_in_column': `One of the ${getDigitWordPlural()} has only one possible location remaining in a row. This ${getDigitWord()} must go in that specific cell.`,
-				'naked_single': `A cell has only one possible candidate remaining. This is the only ${getDigitWord()} that can go in this cell.`,
-				'naked_pairs': `Two cells in the same unit contain the exact same two candidates. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
-				'naked_triples': `Three cells in the same unit share the same three candidates among them. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
-				'naked_quads': `Four cells in the same unit share the same four candidates among them. These ${getDigitWordPlural()} cannot appear anywhere else in that unit.`,
-				'hidden_pairs': `Two ${getDigitWordPlural()} can only appear in the same two cells within a unit. All other candidates can be eliminated from these cells.`,
-				'hidden_triples': `Three ${getDigitWordPlural()} can only appear in the same three cells within a unit. All other candidates can be eliminated from these cells.`,
-				'hidden_quads': `Four ${getDigitWordPlural()} can only appear in the same four cells within a unit. All other candidates can be eliminated from these cells.`,
-				'pointing_pairs': `A ${getDigitWord()} in a box is restricted to a single row or column. This eliminates that ${getDigitWord()} from other cells in that row/column.`,
-				'box_line_reduction': `A ${getDigitWord()} in a row or column is restricted to a single box. This eliminates that ${getDigitWord()} from other cells in that box.`
-			};
-			
-			return explanations[hint.technique] || `A ${getTechniqueDisplayName(hint.technique)} technique has been found.`;
+		
+			// should only explain what the technique is, not the specific hint
+			switch (hint.type) {
+				case 'error':
+					return `An incorrect value was detected. This value violates Sudoku rules by appearing twice in the same row, column, or box.`;
+		
+				case 'missing_candidate':
+					return `A cell is missing a valid candidate ${getDigitWord()}. This ${getDigitWord()} should be penciled in as a possibility based on the current board state.`;
+		
+				case 'single_cell':
+					if (hint.technique === 'naked_single') {
+						return `A cell has been reduced to only one possible candidate.`;
+					}
+
+					return `A ${getDigitWord()} has only one possible location remaining in a ${hint.technique.substring(hint.technique.lastIndexOf('_') + 1)}.`;
+
+				case 'naked_set':
+					return `There exist ${hint.digits.length} cells in the same ${hint.unitType} solely containing ${hint.digits.length} distinct candidates. Those ${getDigitWordPlural()} are locked to these cells only, and cannot appear elsewhere in that ${hint.unitType}.`;
+
+				case 'hidden_set':
+					return `A set of ${hint.digits.length} ${getDigitWordPlural()} can only appear in ${hint.digits.length} distinct cells within a ${hint.unitType}. Those cells must only contain those ${getDigitWordPlural()}.`;
+
+				case 'intersection_removal':
+					if (hint.technique === 'pointing_pairs') {
+						return `There exists a ${getDigitWord()} in one of the boxes that is restricted to only one ${hint.secondaryUnitType}. No other ${getDigitWordPlural()} can appear in that ${hint.secondaryUnitType} outside of this box.`;
+					} else {
+						return `There exists a ${getDigitWord()} in a ${hint.primaryUnitType} which appears in only one box. It must exist in that ${hint.primaryUnitType}, so it can be eliminated from other cells in that box.`;
+					}
+			}
 		} else if (currentStage === 2) {
 			// Stage 2: Show where the technique applies with more context
-			if (hint.type === 'error') {
-				return `Cell ${formatSquare(hint.square)} contains ${formatDigit(hint.actualValue)}, but this creates a conflict. Look for the duplicate ${formatDigit(hint.actualValue)} in the same row, column, or box.`;
-			} else if (hint.type === 'missing_candidate') {
-				return `Cell ${formatSquare(hint.square)} should have ${formatDigit(hint.missingDigit)} as a possible candidate. Check why this ${getDigitWord()} isn't ruled out by the current values.`;
-			} else if (hint.type === 'single_cell') {
-				if (hint.technique.includes('last_remaining')) {
-					// Fix the row/column mapping - seems to be flipped in the UI
-					let unit;
-					if (hint.technique.includes('box')) {
-						unit = 'box';
-					} else if (hint.technique.includes('row')) {
-						unit = 'column'; // Flipped: "last_remaining_in_row" actually means column in UI
-					} else {
-						unit = 'row'; // Flipped: "last_remaining_in_column" actually means row in UI
+			switch (hint.type) {
+				case 'error':
+					return `Cell ${formatSquare(hint.square)} contains ${formatDigit(hint.actualValue)}, but this creates a conflict. Look for the duplicate ${formatDigit(hint.actualValue)} in the same row, column, or box.`;
+				
+				case 'missing_candidate':
+					return `Cell ${formatSquare(hint.square)} should have ${formatDigit(hint.missingDigit)} as a possible candidate. Check why this ${getDigitWord()} isn't ruled out by the current values.`;
+				
+				case 'single_cell':
+					if (hint.technique === 'naked_single') {
+						return `Cell ${formatSquare(hint.square)} has been reduced to only one possible candidate.`;
 					}
-					return `${formatDigit(hint.digit)} has only one possible location in its ${unit} - cell ${formatSquare(hint.square)}. This is the only place it can go.`;
-				} else {
-					return `Cell ${formatSquare(hint.square)} has been reduced to only one possible candidate: ${formatDigit(hint.digit)}. This is the only value that can fit.`;
-				}
-			} else if (hint.type === 'naked_set') {
-				const setSize = hint.technique.includes('pairs') ? 'pair' : hint.technique.includes('triples') ? 'triple' : 'quad';
-				const unitType = hint.unitType;
-				return `A naked ${setSize} of ${getDigitWordPlural()} ${formatDigits(hint.digits)} exists in cells ${formatSquares(hint.squares)} in this ${unitType}. These ${getDigitWordPlural()} are locked to these cells only.`;
-			} else if (hint.type === 'hidden_set') {
-				const setSize = hint.technique.includes('pairs') ? 'pair' : hint.technique.includes('triples') ? 'triple' : 'quad';
-				const unitType = hint.unitType;
-				return `A hidden ${setSize} of ${getDigitWordPlural()} ${formatDigits(hint.digits)} can only appear in cells ${formatSquares(hint.squares)} within this ${unitType}.`;
-			} else if (hint.type === 'intersection_removal') {
-				if (hint.technique === 'pointing_pairs') {
-					const cellCount = hint.squares.length === 2 ? 'pair' : 'triple';
-					return `${formatDigit(hint.digit)} in the highlighted box is restricted to only these ${hint.squares.length} cells (${formatSquares(hint.squares)}), creating a pointing ${cellCount}.`;
-				} else {
-					const unitType = hint.primaryUnitType === 'column' ? 'row' : 'column'; // Flip terminology to match visual
-					return `${formatDigit(hint.digit)} in the highlighted ${unitType} is restricted to only one box, creating a box/line reduction opportunity.`;
-				}
+
+					return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} has only one possible location remaining in a ${hint.technique.substring(hint.technique.lastIndexOf('_') + 1)}.`;
+				
+				case 'naked_set':
+					return `The ${hint.digits.length} cells ${formatSquares(hint.squares)} contain ${hint.digits.length} distinct candidates, ${formatDigits(hint.digits)}. These ${getDigitWordPlural()} cannot appear elsewhere in that ${hint.unitType}.`;
+
+				case 'hidden_set':
+					return `${getDigitWordPluralCapitalized()} ${formatDigits(hint.digits)} must appear in cells ${formatSquares(hint.squares)} within this ${hint.unitType}. All other candidates can be eliminated from these cells.`;
+
+				case 'intersection_removal':
+					if (hint.technique === 'pointing_pairs') {
+						const cellCount = hint.squares.length === 2 ? 'pair' : 'triple';
+						return `${formatDigit(hint.digit)} in the highlighted box is restricted to only these ${hint.squares.length} cells (${formatSquares(hint.squares)}), creating a pointing ${cellCount}. No other ${formatDigit(hint.digit)} can appear in the same ${hint.secondaryUnitType} outside of this box.`;
+					} else {
+						return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} in the highlighted ${hint.primaryUnitType} is restricted to only one box. It must appear in that ${hint.primaryUnitType} and not in any other cells in that box.`;
+					}
 			}
 		} else {
 			// Stage 3: Show the full technical description with the action
-			return hint.description;
+			switch (hint.type) {
+				case 'error':
+					return `Cell ${formatSquare(hint.square)} contains ${formatDigit(hint.actualValue)}, but the correct value is ${formatDigit(hint.correctValue)}`;
+				
+				case 'missing_candidate':
+					return `Cell ${formatSquare(hint.square)} is missing candidate ${formatDigit(hint.missingDigit)}`;
+				
+				case 'single_cell':
+					if (hint.technique === 'naked_single') {
+						return `The only candidate remaining for cell ${formatSquare(hint.square)} is ${formatDigit(hint.digit)}.`;
+					}
+
+					return `Cell ${formatSquare(hint.square)} is the only cell in its ${hint.technique.substring(hint.technique.lastIndexOf('_') + 1)} that can contain a ${formatDigit(hint.digit)}.`;
+
+				case 'naked_set':
+					return `${getDigitWordPluralCapitalized()} ${formatDigits(hint.digits)} are restricted to cells ${formatSquares(hint.squares)} in the highlighted ${hint.unitType}. These ${getDigitWordPlural()} cannot appear in cells ${formatSquares(hint.eliminationCells)}.`;
+				
+				case 'hidden_set':
+					return `${getDigitWordPluralCapitalized()} ${formatDigits(hint.digits)} must appear in cells ${formatSquares(hint.squares)} within this ${hint.unitType}. ${formatDigits(hint.eliminationDigits)} can be eliminated from these cells.`;
+				
+				case 'intersection_removal':
+					if (hint.technique === 'pointing_pairs') {
+						return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} must appear in either cell ${formatSquares(hint.squares)} in the highlighted box. In either case, cells ${formatSquares(hint.eliminationCells)} in the same ${hint.secondaryUnitType} cannot contain a ${formatDigit(hint.digit)}.`;
+					} else {
+						return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} must appear in either cell ${formatSquares(hint.squares)} in the highlighted box. In either case, cells ${formatSquares(hint.eliminationCells)} in the same box cannot contain a ${formatDigit(hint.digit)}.`;
+					}
+			}
 		}
 		return '';
-	}
-	
-	function getActionButtonText(): string {
-		return stage === 1 ? 'Show Location' : stage === 2 ? 'Show Solution' : 'Apply Hint';
 	}
 	
 	function handleAction() {
