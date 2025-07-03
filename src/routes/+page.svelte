@@ -282,6 +282,28 @@
 		board = result.board;
 	}
 
+	// Helper function to initialize board for game phases
+	function initializeBoardForGamePhase(
+		gameMode: 'solving' | 'manual' | 'competition',
+	) {
+		for (let i = 0; i < 9; i++) {
+			for (let j = 0; j < 9; j++) {
+				if (board[i][j].value !== null) {
+					board[i][j].isInitial = true;
+				} else {
+					if (gameMode === 'manual') {
+						// In manual mode, start with all numbers available as candidates
+						board[i][j].candidates = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+					} else {
+						// In solving and competition modes, calculate valid candidates
+						board[i][j].candidates = getPossibleNumbers(board, i, j);
+					}
+				}
+			}
+		}
+		saveToHistory();
+	}
+
 	function startGame() {
 		const validation = validateBoardSimple(board);
 
@@ -294,16 +316,7 @@
 		solution = validation.solution!; // We know it's not null since validation passed
 		gamePhase = 'solving';
 
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				if (board[i][j].value !== null) {
-					board[i][j].isInitial = true;
-				} else {
-					board[i][j].candidates = getPossibleNumbers(board, i, j);
-				}
-			}
-		}
-		saveToHistory();
+		initializeBoardForGamePhase('solving');
 	}
 
 	function startManualGame() {
@@ -311,18 +324,7 @@
 		solution = null; // No solution checking in manual mode
 		gamePhase = 'manual';
 
-		// Mark existing numbers as initial and give all empty cells all possible candidates
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				if (board[i][j].value !== null) {
-					board[i][j].isInitial = true;
-				} else {
-					// In manual mode, start with all numbers available as candidates
-					board[i][j].candidates = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-				}
-			}
-		}
-		saveToHistory();
+		initializeBoardForGamePhase('manual');
 	}
 
 	function startCompetitionGame() {
@@ -342,16 +344,7 @@
 		timerFinalTime = null;
 		isTimerRunning = true;
 
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				if (board[i][j].value !== null) {
-					board[i][j].isInitial = true;
-				} else {
-					board[i][j].candidates = getPossibleNumbers(board, i, j);
-				}
-			}
-		}
-		saveToHistory();
+		initializeBoardForGamePhase('competition');
 	}
 
 	function saveToHistory() {
@@ -648,15 +641,7 @@
 		timerFinalTime = null;
 		isTimerRunning = true;
 
-		// Initialize candidates for empty cells
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				if (board[i][j].value === null) {
-					board[i][j].candidates = getPossibleNumbers(board, i, j);
-				}
-			}
-		}
-		saveToHistory();
+		initializeBoardForGamePhase('competition');
 
 		// Hide challenge start screen
 		showChallengeStart = false;
