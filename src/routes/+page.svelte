@@ -19,6 +19,10 @@
 	} from '$lib';
 	import type { SudokuHint, Values } from '$lib/sudoku/sudoku';
 	import {
+		createKeyboardHandler,
+		type KeyboardHandlerContext,
+	} from '$lib/utils/keyboardHandler.js';
+	import {
 		encodePuzzle,
 		generateShareText,
 		createShareableUrl,
@@ -662,162 +666,55 @@
 			showChallengeStart = true;
 		}
 
-		const handleKeyDown = (event: KeyboardEvent) => {
-			const num = parseInt(event.key);
-			if (!isNaN(num) && num >= 1 && num <= 9) {
-				handleInput(num);
-				// Reset cycling when manually typing a number
-				cyclingNumber = null;
-			} else if (event.key === 'Delete' || event.key === 'Backspace') {
-				handleDelete();
-			} else if (event.key === 'Tab') {
-				event.preventDefault(); // Prevent default tab behavior
+		// Create keyboard handler with dynamic context
+		const getKeyboardContext = (): KeyboardHandlerContext => ({
+			// Game state
+			gamePhase,
+			selectedCell,
+			cyclingNumber,
+			colorKuMode,
+			inputMode,
+			difficulty,
+			showingHint,
+			board,
 
-				if (selectedCell) {
-					const currentValue = board[selectedCell.row][selectedCell.col].value;
+			// Action callbacks
+			handleInput,
+			handleDelete,
+			cycleToNextCellWithSameNumber,
+			cycleToNextNumber,
+			placeCyclingNumber,
+			undo,
+			generatePuzzle,
+			startGame,
+			startManualGame,
+			showShareModalForConfiguration,
+			getHint,
+			closeHint,
+			updateHighlightedNumber,
 
-					if (currentValue !== null) {
-						// Cell has a value - cycle to next cell with same number
-						cycleToNextCellWithSameNumber();
-					} else if (
-						gamePhase === 'solving' ||
-						gamePhase === 'manual' ||
-						gamePhase === 'competition'
-					) {
-						// Cell is empty and we're in solving, manual, or competition phase - cycle through available numbers
-						cycleToNextNumber();
-					}
-				}
-			} else if (event.key === 'Enter') {
-				event.preventDefault(); // Prevent default enter behavior
+			// State setters
+			setCyclingNumber: (num) => {
+				cyclingNumber = num;
+			},
+			setColorKuMode: (mode) => {
+				colorKuMode = mode;
+			},
+			setInputMode: (mode) => {
+				inputMode = mode;
+			},
+			setDifficulty: (diff) => {
+				difficulty = diff;
+			},
+			setSelectedCell: (cell) => {
+				selectedCell = cell;
+			},
 
-				// Place/toggle the cycling number
-				if (
-					selectedCell &&
-					(gamePhase === 'solving' ||
-						gamePhase === 'manual' ||
-						gamePhase === 'competition') &&
-					cyclingNumber !== null
-				) {
-					const { row, col } = selectedCell;
-					if (board[row][col].value === null) {
-						placeCyclingNumber();
-					}
-				}
-			} else if (event.key.toLowerCase() === 'c' && !event.ctrlKey) {
-				// Toggle ColorKu mode (available in all phases, but not when Ctrl is pressed)
-				colorKuMode = !colorKuMode;
-			} else if (event.key.toLowerCase() === 'z' && event.ctrlKey) {
-				// Ctrl+Z for undo (available in all phases that support undo)
-				if (
-					gamePhase === 'solving' ||
-					gamePhase === 'manual' ||
-					gamePhase === 'competition'
-				) {
-					undo();
-				}
-			} else if (gamePhase === 'configuring') {
-				// Configuration phase hotkeys
-				if (event.key.toLowerCase() === 'g') {
-					generatePuzzle();
-				} else if (event.key.toLowerCase() === 'd') {
-					// Cycle through difficulties: easy -> medium -> hard -> easy
-					const difficulties = ['easy', 'medium', 'hard'] as const;
-					const currentIndex = difficulties.indexOf(difficulty);
-					const nextIndex = (currentIndex + 1) % difficulties.length;
-					difficulty = difficulties[nextIndex];
-				} else if (event.key.toLowerCase() === 's') {
-					startGame();
-				} else if (event.key.toLowerCase() === 'm') {
-					startManualGame();
-				} else if (event.key.toLowerCase() === 'x') {
-					// Share current configuration
-					showShareModalForConfiguration();
-				}
-			} else if (
-				gamePhase === 'solving' ||
-				gamePhase === 'manual' ||
-				gamePhase === 'competition'
-			) {
-				// Solving, manual, and competition phase hotkeys
-				if (event.key.toLowerCase() === 'n') {
-					// Toggle normal/note mode
-					inputMode = inputMode === 'normal' ? 'note' : 'normal';
-				} else if (event.key.toLowerCase() === 'u') {
-					undo();
-				} else if (
-					event.key.toLowerCase() === 'h' &&
-					gamePhase !== 'competition'
-				) {
-					// Get hint or advance hint stage if already showing (not in competition mode)
-					if (showingHint && hintDisplayRef) {
-						// Advance to next hint stage
-						hintDisplayRef.advanceStage();
-					} else {
-						// Get new hint
-						getHint();
-					}
-				} else if (event.key === 'Escape' && showingHint) {
-					// Close hint
-					closeHint();
-				}
-			}
+			// External references
+			hintDisplayRef,
+		});
 
-			// Navigation keys - Arrow keys always available, WASD only in solving, manual, and competition phase
-			const isArrowKey = [
-				'ArrowUp',
-				'ArrowDown',
-				'ArrowLeft',
-				'ArrowRight',
-			].includes(event.key);
-			const isWASD = ['w', 'a', 's', 'd'].includes(event.key.toLowerCase());
-
-			if (
-				isArrowKey ||
-				(isWASD &&
-					(gamePhase === 'solving' ||
-						gamePhase === 'manual' ||
-						gamePhase === 'competition'))
-			) {
-				// Handle navigation keys
-				event.preventDefault(); // Prevent default behavior (like scrolling)
-
-				if (!selectedCell) {
-					// If no cell is selected, start at the center
-					selectedCell = { row: 4, col: 4 };
-					updateHighlightedNumber(4, 4);
-					return;
-				}
-
-				let newRow = selectedCell.row;
-				let newCol = selectedCell.col;
-
-				switch (event.key.toLowerCase()) {
-					case 'arrowup':
-					case 'w':
-						newRow = Math.max(0, selectedCell.row - 1);
-						break;
-					case 'arrowdown':
-					case 's':
-						newRow = Math.min(8, selectedCell.row + 1);
-						break;
-					case 'arrowleft':
-					case 'a':
-						newCol = Math.max(0, selectedCell.col - 1);
-						break;
-					case 'arrowright':
-					case 'd':
-						newCol = Math.min(8, selectedCell.col + 1);
-						break;
-				}
-
-				// Update selected cell if position changed
-				if (newRow !== selectedCell.row || newCol !== selectedCell.col) {
-					selectedCell = { row: newRow, col: newCol };
-					updateHighlightedNumber(newRow, newCol);
-				}
-			}
-		};
+		const handleKeyDown = createKeyboardHandler(getKeyboardContext);
 
 		window.addEventListener('keydown', handleKeyDown);
 
