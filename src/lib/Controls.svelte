@@ -12,6 +12,7 @@
 	export let highlightedNumber: number | null = null;
 	export let selectedCellCandidates: Set<number> = new Set(); // Renamed from selectedCellNotes for consistency
 	export let numberCounts: { [key: number]: number } = {};
+	export let isGameCompleted: boolean = false;
 
 	// Timer props for competition mode
 	export let isTimerRunning: boolean = false;
@@ -28,6 +29,7 @@
 	export let onGeneratePuzzle: () => void;
 	export let onGetHint: () => void;
 	export let onShare: () => void;
+	export let onNewGame: () => void;
 
 	let startMode: 'normal' | 'manual' | 'competition' = 'normal';
 
@@ -135,54 +137,80 @@
 				<span>Share</span>
 			</button>
 		{:else}
-			<div class="note-mode-toggle">
-				<span class="toggle-label" class:active={!isNoteMode}>Normal</span>
+			{#if isGameCompleted}
+				<!-- Game completed - show New Game button and limited options -->
+				<button class="action-button new-game-button" on:click={onNewGame}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+						<path d="M3 3v5h5"/>
+						<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+						<path d="M21 21v-5h-5"/>
+					</svg>
+					<span>New Game</span>
+				</button>
+				{#if gamePhase === 'competition'}
+					<button class="action-button share-button" on:click={share} aria-label="Share result">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="18" cy="5" r="3"/>
+							<circle cx="6" cy="12" r="3"/>
+							<circle cx="18" cy="19" r="3"/>
+							<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+							<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+						</svg>
+						<span>Share</span>
+					</button>
+				{/if}
+			{:else}
+				<!-- Game in progress - show normal controls -->
+				<div class="note-mode-toggle">
+					<span class="toggle-label" class:active={!isNoteMode}>Normal</span>
+					<button 
+						class="toggle-switch" 
+						class:active={isNoteMode}
+						class:disabled={errorCell && gamePhase === 'solving'}
+						disabled={errorCell !== null && gamePhase === 'solving'}
+						on:click={toggleNoteMode}
+						aria-label="Toggle note mode"
+						role="switch"
+						aria-checked={isNoteMode}
+					>
+						<span class="toggle-slider"></span>
+					</button>
+					<span class="toggle-label" class:active={isNoteMode}>Note</span>
+				</div>
+				<button class="action-button" class:error={errorCell && gamePhase === 'solving'} on:click={undo}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><polyline points="9 14 4 9 9 4"></polyline><path
+							d="M20 20v-7a4 4 0 0 0-4-4H4"
+						></path></svg
+					>
+					<span>Undo</span>
+				</button>
 				<button 
-					class="toggle-switch" 
-					class:active={isNoteMode}
+					class="action-button hint-button" 
 					class:disabled={errorCell && gamePhase === 'solving'}
 					disabled={errorCell !== null && gamePhase === 'solving'}
-					on:click={toggleNoteMode}
-					aria-label="Toggle note mode"
-					role="switch"
-					aria-checked={isNoteMode}
+					on:click={getHint}
+					aria-label="Get hint"
+					title="Get hint"
+					style:display={gamePhase === 'competition' ? 'none' : 'inline-flex'}
 				>
-					<span class="toggle-slider"></span>
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M9 21h6"/>
+						<path d="M12 17c-3.314 0-6-2.686-6-6 0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6z"/>
+						<path d="M10 19h4"/>
+					</svg>
 				</button>
-				<span class="toggle-label" class:active={isNoteMode}>Note</span>
-			</div>
-			<button class="action-button" class:error={errorCell && gamePhase === 'solving'} on:click={undo}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					><polyline points="9 14 4 9 9 4"></polyline><path
-						d="M20 20v-7a4 4 0 0 0-4-4H4"
-					></path></svg
-				>
-				<span>Undo</span>
-			</button>
-			<button 
-				class="action-button hint-button" 
-				class:disabled={errorCell && gamePhase === 'solving'}
-				disabled={errorCell !== null && gamePhase === 'solving'}
-				on:click={getHint}
-				aria-label="Get hint"
-				title="Get hint"
-				style:display={gamePhase === 'competition' ? 'none' : 'inline-flex'}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M9 21h6"/>
-					<path d="M12 17c-3.314 0-6-2.686-6-6 0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6z"/>
-					<path d="M10 19h4"/>
-				</svg>
-			</button>
+			{/if}
 		{/if}
 		
 		<!-- ColorKu Mode Toggle - Available in all phases -->
@@ -201,11 +229,11 @@
 			{#if (numberCounts[i + 1] || 0) < 9}
 				<button 
 					class="number-button" 
-					class:disabled={errorCell && gamePhase === 'solving'}
-					class:highlighted={highlightedNumber === i + 1}
-					class:note-highlighted={selectedCellCandidates.has(i + 1)}
+					class:disabled={(errorCell && gamePhase === 'solving') || isGameCompleted}
+					class:highlighted={highlightedNumber === i + 1 && !isGameCompleted}
+					class:note-highlighted={selectedCellCandidates.has(i + 1) && !isGameCompleted}
 					class:dulled={colorKuMode && selectedCellCandidates.size > 0 && !selectedCellCandidates.has(i + 1)}
-					disabled={errorCell !== null && gamePhase === 'solving'}
+					disabled={(errorCell !== null && gamePhase === 'solving') || isGameCompleted}
 					on:click={() => handleInput(i + 1)}
 				>
 					{#if colorKuMode}
@@ -291,6 +319,17 @@
 		border-bottom-right-radius: 0;
 		border-right: none;
 		flex: 1;
+	}
+
+	.new-game-button {
+		background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
+		color: white;
+		border: 1px solid #2d5016;
+	}
+
+	.new-game-button:hover {
+		background: linear-gradient(135deg, #5a8c69 0%, #3d6026 100%);
+		transform: translateY(-1px);
 	}
 
 	.start-button {

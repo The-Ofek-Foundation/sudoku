@@ -4,6 +4,7 @@
 	import HintDisplay from '$lib/HintDisplay.svelte';
 	import ShareModal from '$lib/ShareModal.svelte';
 	import ChallengeStart from '$lib/ChallengeStart.svelte';
+	import CongratulationsModal from '$lib/CongratulationsModal.svelte';
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
@@ -24,6 +25,7 @@
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
 	let difficulty: Difficulty = 'easy';
+	let isGameCompleted: boolean = false;
 	let gridSize = '600px'; // Default size
 	let cyclingNumber: number | null = null; // Current number when cycling with Tab
 	
@@ -44,6 +46,7 @@
 	let shareUrl: string = '';
 	let challengeData: PuzzleShare | null = null;
 	let showChallengeStart: boolean = false;
+	let showCongratulationsModal: boolean = false;
 
 	let board: CellData[][] = Array(9)
 		.fill(null)
@@ -296,15 +299,21 @@
 			if (gamePhase === 'configuring') {
 				board[row][col].value = num;
 				// Trigger reactivity
+				board = board;		} else if (gamePhase === 'manual') {
+			// Manual mode: no restrictions, no error checking, no automatic note updates
+			if (inputMode === 'normal' && !board[row][col].isInitial) {
+				saveToHistory();
+				board[row][col].value = num;
+				board[row][col].candidates.clear();
+				
+				// Check if puzzle is complete
+				if (isPuzzleComplete()) {
+					isGameCompleted = true;
+					showCongratulationsModal = true;
+				}
+				
+				// Trigger reactivity
 				board = board;
-			} else if (gamePhase === 'manual') {
-				// Manual mode: no restrictions, no error checking, no automatic note updates
-				if (inputMode === 'normal' && !board[row][col].isInitial) {
-					saveToHistory();
-					board[row][col].value = num;
-					board[row][col].candidates.clear();
-					// Trigger reactivity
-					board = board;
 				} else if (inputMode === 'note' && !board[row][col].isInitial) {
 					saveToHistory();
 					if (board[row][col].candidates.has(num)) {
@@ -332,8 +341,9 @@
 							// Stop timer and record final time
 							isTimerRunning = false;
 							timerFinalTime = Date.now() - timerStartTime!;
-							// Show share modal after completion
-							showShareModalForCompletion();
+							isGameCompleted = true;
+							// Show congratulations modal for competition mode too
+							showCongratulationsModal = true;
 						}
 						// Trigger reactivity
 						board = board;
@@ -365,6 +375,12 @@
 					} else {
 						// Automatically update candidates in related cells only if correct
 						updateNotesAfterPlacement(row, col, num);
+						
+						// Check if puzzle is complete
+						if (isPuzzleComplete()) {
+							isGameCompleted = true;
+							showCongratulationsModal = true;
+						}
 					}
 					// Trigger reactivity
 					board = board;
@@ -682,7 +698,13 @@
 		
 		// Trigger reactivity
 		board = board;
-		
+
+		// If puzzle is complete and not in competition mode, show congratulations
+		if ((gamePhase === 'solving' || gamePhase === 'manual') && isPuzzleComplete()) {
+			isGameCompleted = true;
+			showCongratulationsModal = true;
+		}
+
 		// Close hint display
 		closeHint();
 	}
@@ -740,6 +762,40 @@
 
 	function closeShareModal() {
 		showShareModal = false;
+	}
+
+	function closeCongratulationsModal() {
+		showCongratulationsModal = false;
+	}
+
+	function startNewGame() {
+		// Reset to configuration mode with blank board
+		gamePhase = 'configuring';
+		showCongratulationsModal = false;
+		isGameCompleted = false;
+		selectedCell = null;
+		highlightedNumber = null;
+		cyclingNumber = null;
+		errorMessage = null;
+		errorCell = null;
+		solution = null;
+		history = [];
+		showingHint = false;
+		currentHint = null;
+		highlightedSquares = null;
+		
+		// Clear the board
+		board = Array(9)
+			.fill(null)
+			.map(() =>
+				Array(9)
+					.fill(null)
+					.map(() => ({
+						value: null,
+						candidates: new Set<number>(),
+						isInitial: false,
+					})),
+			);
 	}
 
 	function loadChallengeBoard(puzzleData: PuzzleShare) {
@@ -1027,6 +1083,7 @@
 				{errorCell}
 				{gridSize}
 				{highlightedNumber}
+				{isGameCompleted}
 				selectedCellCandidates={selectedCell && (gamePhase === 'solving' || gamePhase === 'manual' || gamePhase === 'competition') && board[selectedCell.row][selectedCell.col].value === null ? board[selectedCell.row][selectedCell.col].candidates : new Set()}
 				numberCounts={getNumberCounts()}
 				isTimerRunning={isTimerRunning}
@@ -1040,7 +1097,8 @@
 				onGeneratePuzzle={generatePuzzle}
 				onHandleInput={handleInput}
 				onGetHint={getHint}
-				onShare={showShareModalForConfiguration}
+				onShare={gamePhase === 'competition' && isGameCompleted ? showShareModalForCompletion : showShareModalForConfiguration}
+				onNewGame={startNewGame}
 			/>
 		{/if}
 	{/if}
@@ -1050,6 +1108,12 @@
 		{shareText}
 		{shareUrl}
 		onClose={closeShareModal}
+	/>
+
+	<CongratulationsModal 
+		isOpen={showCongratulationsModal}
+		onClose={closeCongratulationsModal}
+		onNewGame={startNewGame}
 	/>
 </main>
 
