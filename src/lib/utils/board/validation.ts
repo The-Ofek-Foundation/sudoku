@@ -48,7 +48,7 @@ export function validateBoardSimple(
 ): SimpleValidationResult {
 	const result = validateBoard(board);
 
-	if (!result.isValid) {
+	if (!result.isValid || !result.hasUniqueSolution) {
 		return {
 			isValid: false,
 			errorMessage: result.errorMessage!,
