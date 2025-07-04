@@ -75,7 +75,11 @@
 	let currentHint: SudokuHint | null = null;
 	let showingHint: boolean = false;
 	let highlightedSquares:
-		| { squares: string[]; type: 'primary' | 'secondary' | 'elimination' }[]
+		| {
+				squares?: string[];
+				unit?: { type: 'row' | 'column' | 'box'; index: number };
+				highlightType: 'primary' | 'secondary' | 'elimination';
+		  }[]
 		| null = null;
 	let hintDisplayRef: HintDisplay; // Reference to HintDisplay component
 
@@ -301,7 +305,12 @@
 			} else {
 				if (gameMode === 'manual') {
 					// In manual mode, start with all numbers available as candidates
-					setCellCandidates(board, row, col, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+					setCellCandidates(
+						board,
+						row,
+						col,
+						new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]),
+					);
 				} else {
 					// In solving and competition modes, calculate valid candidates
 					setCellCandidates(
@@ -433,15 +442,17 @@
 	}
 
 	function handleHighlight(data: {
-		squares: string[];
-		type: 'primary' | 'secondary' | 'elimination';
+		squares?: string[];
+		unit?: { type: 'row' | 'column' | 'box'; index: number };
+		candidateEliminations?: { square: string; digits: string[] }[];
+		highlightType: 'primary' | 'secondary' | 'elimination';
 	}) {
 		if (!highlightedSquares) {
 			highlightedSquares = [data];
 		} else {
 			// Remove any existing highlight of the same type
 			highlightedSquares = highlightedSquares.filter(
-				(h) => h.type !== data.type,
+				(h) => h.highlightType !== data.highlightType,
 			);
 			// Add the new highlight
 			highlightedSquares.push(data);

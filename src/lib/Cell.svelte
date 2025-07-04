@@ -10,6 +10,7 @@
 	export let hintHighlight: Array<
 		'primary' | 'secondary' | 'elimination'
 	> | null = null;
+	export let eliminationCandidates: string[] = []; // Specific candidates to highlight for elimination
 
 	function getColorForNumber(num: number): string {
 		return colorKuColors[num] || '#000000';
@@ -21,6 +22,10 @@
 			highlightedNumber !== null &&
 			highlightedNumber !== noteNumber
 		);
+	}
+
+	function shouldHighlightEliminationCandidate(noteNumber: number): boolean {
+		return eliminationCandidates.includes(noteNumber.toString());
 	}
 </script>
 
@@ -50,11 +55,17 @@
 					class="note-cell"
 					class:highlighted={highlightedNumber === i + 1}
 					class:dulled={shouldDullNote(i + 1)}
+					class:elimination-highlight={shouldHighlightEliminationCandidate(
+						i + 1,
+					)}
 				>
 					{#if candidates.has(i + 1)}
 						{#if colorKuMode}
 							<div
 								class="note-color-circle"
+								class:elimination-highlight={shouldHighlightEliminationCandidate(
+									i + 1,
+								)}
 								style="background-color: {getColorForNumber(i + 1)}"
 							></div>
 						{:else}
@@ -210,18 +221,51 @@
 		transform: scale(1.1);
 	}
 
+	/* Note highlighting for individual candidate elimination */
+	.note-cell.elimination-highlight {
+		color: var(--color-elimination-text);
+		font-weight: var(--font-weight-bold);
+		background: rgba(255, 152, 0, 0.3);
+		border: 2px solid var(--color-elimination-text);
+		border-radius: var(--radius-xs);
+		animation: eliminationNotePulse 1.5s ease-in-out infinite;
+	}
+
+	.note-color-circle.elimination-highlight {
+		border: 3px solid var(--color-elimination-text) !important;
+		box-shadow: var(--shadow-hint-elimination);
+		animation: eliminationNotePulse 1.5s ease-in-out infinite;
+		transform: scale(1.1);
+	}
+
+	@keyframes eliminationNotePulse {
+		0%,
+		100% {
+			background: rgba(255, 152, 0, 0.2);
+			transform: scale(1);
+		}
+		50% {
+			background: rgba(255, 152, 0, 0.35);
+			transform: scale(1.05);
+		}
+	}
+
 	/* Hint highlighting styles */
 	.cell.hint-primary {
 		background: var(--gradient-highlight);
 		border: 2px solid var(--color-primary);
 		box-shadow: var(--shadow-hint-primary);
 		animation: hintPulse 2s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	.cell.hint-secondary {
 		background: var(--gradient-note);
 		border: 2px solid var(--color-note-border);
 		box-shadow: var(--shadow-hint-secondary);
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	.cell.hint-elimination {
@@ -229,6 +273,8 @@
 		border: 2px solid var(--color-elimination-border);
 		box-shadow: var(--shadow-hint-elimination);
 		animation: eliminationPulse 1.5s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	/* Combinations for multiple highlight types */
@@ -237,6 +283,8 @@
 		border: 2px solid var(--color-note-text); /* Blend of primary and secondary colors */
 		box-shadow: var(--shadow-hint-primary), var(--shadow-hint-secondary);
 		animation: hintPulse 2s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	.cell.hint-primary.hint-elimination {
@@ -246,6 +294,8 @@
 		animation:
 			hintPulse 2s ease-in-out infinite,
 			eliminationPulse 1.5s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	.cell.hint-secondary.hint-elimination {
@@ -253,6 +303,8 @@
 		border: 2px solid #ff6f00; /* Blend of secondary and elimination colors */
 		box-shadow: var(--shadow-hint-secondary), var(--shadow-hint-elimination);
 		animation: eliminationPulse 1.5s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	.cell.hint-primary.hint-secondary.hint-elimination {
@@ -264,6 +316,8 @@
 		animation:
 			hintPulse 2s ease-in-out infinite,
 			eliminationPulse 1.5s ease-in-out infinite;
+		position: relative;
+		z-index: 2; /* Above unit overlays */
 	}
 
 	@keyframes hintPulse {

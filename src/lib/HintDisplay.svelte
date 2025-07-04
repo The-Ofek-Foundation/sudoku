@@ -2,6 +2,8 @@
 	import type { SudokuHint } from './sudoku/sudoku';
 	import { difficultyToCategory } from '$lib';
 	import { colorKuColors } from './colors.js';
+	import { getUnitType } from './sudoku/core/utils.js';
+	import type { Unit } from './sudoku/types.js';
 
 	export let hint: SudokuHint;
 	export let gridSize: string;
@@ -10,8 +12,10 @@
 	// Callback props instead of createEventDispatcher
 	export let onClose: () => void;
 	export let onHighlight: (data: {
-		squares: string[];
-		type: 'primary' | 'secondary' | 'elimination';
+		squares?: string[];
+		unit?: { type: 'row' | 'column' | 'box'; index: number };
+		candidateEliminations?: { square: string; digits: string[] }[];
+		highlightType: 'primary' | 'secondary' | 'elimination';
 	}) => void;
 	export let onClearHighlights: () => void;
 	export let onApplyHint: () => void;
@@ -40,6 +44,33 @@
 
 	// Reactive description text - pass stage as parameter to make dependency explicit
 	$: stageDescription = getStageDescription(stage);
+
+	// Helper function to convert unit to metadata for better highlighting
+	function getUnitMetadata(
+		unit: Unit,
+	): { type: 'row' | 'column' | 'box'; index: number } | null {
+		if (!unit || unit.length !== 9) return null;
+
+		const unitType = getUnitType(unit);
+		let index: number;
+
+		if (unitType === 'row') {
+			// Row: all squares have same first character (A-I maps to 0-8)
+			index = unit[0].charCodeAt(0) - 'A'.charCodeAt(0);
+		} else if (unitType === 'column') {
+			// Column: all squares have same second character (1-9 maps to 0-8)
+			index = parseInt(unit[0].charAt(1)) - 1;
+		} else {
+			// box
+			// Box: calculate box index from first square
+			const firstSquare = unit[0];
+			const row = firstSquare.charCodeAt(0) - 'A'.charCodeAt(0);
+			const col = parseInt(firstSquare.charAt(1)) - 1;
+			index = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+		}
+
+		return { type: unitType, index };
+	}
 
 	// Helper function to get technique display name
 	function getTechniqueDisplayName(technique: string): string {
@@ -136,24 +167,35 @@
 	// Stage progression functions
 	function showLocation() {
 		stage = 2;
-		// Highlight the relevant squares
+		// Highlight the relevant squares or units
 		if (hint.type === 'error' || hint.type === 'missing_candidate') {
-			onHighlight({ squares: [hint.square], type: 'primary' });
+			onHighlight({ squares: [hint.square], highlightType: 'primary' });
 		} else if (hint.type === 'single_cell') {
 			// For "last remaining" techniques, highlight the entire unit first
 			if (hint.technique.includes('last_remaining') && hint.unit) {
-				onHighlight({ squares: hint.unit, type: 'secondary' });
+				const unitMeta = getUnitMetadata(hint.unit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					// Fallback to individual cells
+					onHighlight({ squares: hint.unit, highlightType: 'secondary' });
+				}
 			} else {
 				// For naked singles, just highlight the cell
-				onHighlight({ squares: [hint.square], type: 'primary' });
+				onHighlight({ squares: [hint.square], highlightType: 'primary' });
 			}
 		} else if (hint.type === 'naked_set' || hint.type === 'hidden_set') {
 			// For sets, highlight the containing unit to show context
 			if (hint.unit) {
-				onHighlight({ squares: hint.unit, type: 'secondary' });
-				onHighlight({ squares: hint.squares, type: 'primary' });
+				const unitMeta = getUnitMetadata(hint.unit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					onHighlight({ squares: hint.unit, highlightType: 'secondary' });
+				}
+				onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			} else {
-				onHighlight({ squares: hint.squares, type: 'primary' });
+				onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			}
 		} else if (hint.type === 'intersection_removal') {
 			// For intersection removal, highlight both units to show the context
@@ -161,20 +203,66 @@
 				if (hint.technique === 'pointing_pairs') {
 					// Pointing pairs: highlight only the specific cells where the digit is constrained
 					// Show the box as context and the pointing cells as primary
-					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
-					onHighlight({ squares: hint.squares, type: 'primary' });
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'secondary' });
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'secondary',
+						});
+					}
+					onHighlight({ squares: hint.squares, highlightType: 'primary' });
 				} else if (hint.technique === 'box_line_reduction') {
 					// Box/line reduction: digit in row/column restricted to box
 					// For stage 2, show both the line and the box to provide full context
-					onHighlight({ squares: hint.primaryUnit, type: 'primary' }); // The line
-					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' }); // The box
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					const secondaryUnitMeta = getUnitMetadata(hint.secondaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'primary' }); // The line
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'primary',
+						});
+					}
+					if (secondaryUnitMeta) {
+						onHighlight({
+							unit: secondaryUnitMeta,
+							highlightType: 'secondary',
+						}); // The box
+					} else {
+						onHighlight({
+							squares: hint.secondaryUnit,
+							highlightType: 'secondary',
+						});
+					}
 				} else {
 					// Fallback
-					onHighlight({ squares: hint.primaryUnit, type: 'primary' });
-					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					const secondaryUnitMeta = getUnitMetadata(hint.secondaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'primary' });
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'primary',
+						});
+					}
+					if (secondaryUnitMeta) {
+						onHighlight({
+							unit: secondaryUnitMeta,
+							highlightType: 'secondary',
+						});
+					} else {
+						onHighlight({
+							squares: hint.secondaryUnit,
+							highlightType: 'secondary',
+						});
+					}
 				}
 			} else {
-				onHighlight({ squares: hint.squares, type: 'primary' });
+				onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			}
 		}
 	}
@@ -183,50 +271,127 @@
 		stage = 3;
 		// Highlight all relevant squares with different types
 		if (hint.type === 'error' || hint.type === 'missing_candidate') {
-			onHighlight({ squares: [hint.square], type: 'primary' });
+			onHighlight({ squares: [hint.square], highlightType: 'primary' });
 		} else if (hint.type === 'single_cell') {
 			// For "last remaining" techniques, now highlight the specific cell as primary
 			// and keep the unit as secondary
 			if (hint.technique.includes('last_remaining') && hint.unit) {
-				onHighlight({ squares: hint.unit, type: 'secondary' });
-				onHighlight({ squares: [hint.square], type: 'primary' });
+				const unitMeta = getUnitMetadata(hint.unit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					onHighlight({ squares: hint.unit, highlightType: 'secondary' });
+				}
+				onHighlight({ squares: [hint.square], highlightType: 'primary' });
 			} else {
 				// For naked singles, just highlight the cell
-				onHighlight({ squares: [hint.square], type: 'primary' });
+				onHighlight({ squares: [hint.square], highlightType: 'primary' });
 			}
 		} else if (hint.type === 'naked_set' || hint.type === 'hidden_set') {
 			// Show the containing unit, the set cells, and elimination cells
 			if (hint.unit) {
-				onHighlight({ squares: hint.unit, type: 'secondary' });
+				const unitMeta = getUnitMetadata(hint.unit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					onHighlight({ squares: hint.unit, highlightType: 'secondary' });
+				}
 			}
-			onHighlight({ squares: hint.squares, type: 'primary' });
+			onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			if (hint.eliminationCells.length > 0) {
-				onHighlight({ squares: hint.eliminationCells, type: 'elimination' });
+				// For sets, create candidate eliminations with specific digits
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: hint.eliminationDigits || [],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
 			}
 		} else if (hint.type === 'intersection_removal') {
 			// Show the units, the intersection, and elimination cells
 			if (hint.primaryUnit && hint.secondaryUnit) {
 				if (hint.technique === 'pointing_pairs') {
 					// Pointing pairs: show both units as context, intersection as primary
-					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
-					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
-					onHighlight({ squares: hint.squares, type: 'primary' }); // The intersection
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					const secondaryUnitMeta = getUnitMetadata(hint.secondaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'secondary' });
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'secondary',
+						});
+					}
+					if (secondaryUnitMeta) {
+						onHighlight({
+							unit: secondaryUnitMeta,
+							highlightType: 'secondary',
+						});
+					} else {
+						onHighlight({
+							squares: hint.secondaryUnit,
+							highlightType: 'secondary',
+						});
+					}
+					onHighlight({ squares: hint.squares, highlightType: 'primary' }); // The intersection
 				} else if (hint.technique === 'box_line_reduction') {
 					// Box/line reduction: show line as primary, box as secondary, intersection highlighted within line
-					onHighlight({ squares: hint.primaryUnit, type: 'primary' }); // The line
-					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' }); // The box
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					const secondaryUnitMeta = getUnitMetadata(hint.secondaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'primary' }); // The line
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'primary',
+						});
+					}
+					if (secondaryUnitMeta) {
+						onHighlight({
+							unit: secondaryUnitMeta,
+							highlightType: 'secondary',
+						}); // The box
+					} else {
+						onHighlight({
+							squares: hint.secondaryUnit,
+							highlightType: 'secondary',
+						});
+					}
 					// Don't separately highlight intersection since it's part of the primary line
 				} else {
 					// Fallback
-					onHighlight({ squares: hint.primaryUnit, type: 'secondary' });
-					onHighlight({ squares: hint.secondaryUnit, type: 'secondary' });
-					onHighlight({ squares: hint.squares, type: 'primary' }); // The intersection
+					const primaryUnitMeta = getUnitMetadata(hint.primaryUnit);
+					const secondaryUnitMeta = getUnitMetadata(hint.secondaryUnit);
+					if (primaryUnitMeta) {
+						onHighlight({ unit: primaryUnitMeta, highlightType: 'secondary' });
+					} else {
+						onHighlight({
+							squares: hint.primaryUnit,
+							highlightType: 'secondary',
+						});
+					}
+					if (secondaryUnitMeta) {
+						onHighlight({
+							unit: secondaryUnitMeta,
+							highlightType: 'secondary',
+						});
+					} else {
+						onHighlight({
+							squares: hint.secondaryUnit,
+							highlightType: 'secondary',
+						});
+					}
+					onHighlight({ squares: hint.squares, highlightType: 'primary' }); // The intersection
 				}
 			} else {
-				onHighlight({ squares: hint.squares, type: 'primary' });
+				onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			}
 			if (hint.eliminationCells.length > 0) {
-				onHighlight({ squares: hint.eliminationCells, type: 'elimination' });
+				// For intersection removal, create candidate eliminations with the specific digit
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: [hint.digit],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
 			}
 		}
 	}
