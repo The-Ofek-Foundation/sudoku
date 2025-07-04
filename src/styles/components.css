@@ -134,6 +134,40 @@
 	justify-content: center;
 }
 
+/* Share button specific styling */
+.share-button {
+	position: relative;
+	overflow: hidden;
+}
+
+.share-button::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 255, 255, 0.2),
+		transparent
+	);
+	transition: left 0.5s ease;
+}
+
+.share-button:hover::before {
+	left: 100%;
+}
+
+.share-button svg {
+	transition: transform var(--transition-smooth);
+}
+
+.share-button:hover svg {
+	transform: scale(1.1) rotate(5deg);
+}
+
 /* Card/Surface Components */
 .card {
 	background-color: var(--color-surface);

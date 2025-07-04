@@ -1,269 +1,430 @@
-/* CSS Custom Properties - Design System Variables */
+/* CSS Custom Properties - Design System Variables
+ * 
+ * STRUCTURE:
+ * 1. Base Color Palette - Systematic color scales (50-800)
+ * 2. Semantic Color Mappings - Function-based color assignments
+ * 3. Gradients - Generated from color scale variables
+ * 4. Shadows - Systematic with reusable alpha values
+ * 5. Design Tokens - Spacing, typography, transitions
+ * 6. Responsive Design - Mobile and small screen optimizations
+ * 7. Dark Mode - Automatic color scale adjustments
+ * 8. Legacy Compatibility - Backward compatibility for existing code
+ * 
+ * USAGE:
+ * - Use semantic colors (--color-primary) for most cases
+ * - Use scale colors (--blue-500) for custom variations
+ * - Gradients and shadows auto-adapt to color changes
+ * - All tokens respond to mobile/dark mode automatically
+ */
 
 :root {
-	/* Color Palette */
-	--color-primary: #007bff;
-	--color-primary-hover: #0056b3;
-	--color-success: #28a745;
-	--color-success-hover: #218838;
-	--color-warning: #ffc107;
-	--color-warning-hover: #ffb300;
-	--color-info: #17a2b8;
-	--color-info-hover: #138496;
-	--color-danger: #f44336;
-	--color-danger-hover: #d32f2f;
+	/* ========================================
+	   BASE COLOR PALETTE - Systematic Scale
+	   ======================================== */
 
-	/* Neutral Colors */
-	--color-white: #ffffff;
-	--color-light: #f8f9fa;
-	--color-light-hover: #e9ecef;
-	--color-medium: #dee2e6;
-	--color-medium-hover: #ced4da;
-	--color-dark: #495057;
-	--color-text: #212529;
-	--color-text-muted: #6c757d;
+	/* Primary Blue Scale */
+	--blue-50: #e3f2fd;
+	--blue-100: #bbdefb;
+	--blue-500: #007bff;
+	--blue-600: #1976d2;
+	--blue-700: #1565c0;
+	--blue-800: #0056b3;
 
-	/* Semantic Colors */
-	--color-background: #f8f9fa;
-	--color-surface: #ffffff;
-	--color-border: #dee2e6;
-	--color-border-hover: #ced4da;
-	--color-shadow: rgba(0, 0, 0, 0.1);
-	--color-shadow-strong: rgba(0, 0, 0, 0.3);
+	/* Success Green Scale */
+	--green-50: #e8f5e8;
+	--green-100: #c8e6c8;
+	--green-500: #28a745;
+	--green-600: #4a7c59;
+	--green-700: #218838;
+	--green-800: #5a8c69;
 
-	/* Game-specific Colors */
-	--color-new-game: #4a7c59;
-	--color-new-game-hover: #5a8c69;
-	--color-error: #ffebee;
-	--color-error-border: #f44336;
-	--color-error-text: #c62828;
-	--color-error-pulse: #ffcdd2;
-	--color-highlight: #e3f2fd;
-	--color-highlight-text: #1976d2;
-	--color-highlight-hover: #bbdefb;
-	--color-highlight-hover-text: #1565c0;
-	--color-note-highlight: #f3e5f5;
-	--color-note-border: #9c27b0;
-	--color-note-text: #7b1fa2;
-	--color-note-hover: #e1bee7;
-	--color-note-hover-text: #6a1b9a;
-	--color-elimination: #fff3e0;
-	--color-elimination-border: #ff9800;
-	--color-elimination-text: #ff5722;
+	/* Warning Orange Scale */
+	--orange-50: #fff3e0;
+	--orange-100: #ffcc02;
+	--orange-500: #ffc107;
+	--orange-600: #ff9800;
+	--orange-700: #ffb300;
+	--orange-800: #ff8f00;
 
-	/* Gradients */
-	--gradient-success: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-	--gradient-success-hover: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
-	--gradient-warning: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-	--gradient-warning-hover: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%);
-	--gradient-info: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
-	--gradient-info-hover: linear-gradient(135deg, #138496 0%, #1e7e34 100%);
-	--gradient-new-game: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
-	--gradient-new-game-hover: linear-gradient(135deg, #5a8c69 0%, #3d6026 100%);
-	--gradient-surface: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-	--gradient-toggle: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-	--gradient-highlight: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-	--gradient-note: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-	--gradient-elimination: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
+	/* Error Red Scale */
+	--red-50: #ffebee;
+	--red-100: #ffcdd2;
+	--red-500: #f44336;
+	--red-600: #c62828;
+	--red-700: #d32f2f;
+	--red-800: #ff5722;
+
+	/* Purple Scale (Notes) */
+	--purple-50: #f3e5f5;
+	--purple-100: #e1bee7;
+	--purple-500: #9c27b0;
+	--purple-600: #7b1fa2;
+	--purple-700: #6a1b9a;
+
+	/* Neutral Gray Scale */
+	--gray-0: #ffffff;
+	--gray-50: #f8f9fa;
+	--gray-100: #e9ecef;
+	--gray-200: #dee2e6;
+	--gray-300: #ced4da;
+	--gray-600: #6c757d;
+	--gray-700: #495057;
+	--gray-900: #212529;
+
+	/* ========================================
+	   SEMANTIC COLOR MAPPINGS
+	   ======================================== */
+
+	/* Brand Colors */
+	--color-primary: var(--blue-500);
+	--color-primary-hover: var(--blue-800);
+	--color-success: var(--green-500);
+	--color-success-hover: var(--green-700);
+	--color-warning: var(--orange-500);
+	--color-warning-hover: var(--orange-700);
+	--color-danger: var(--red-500);
+	--color-danger-hover: var(--red-700);
+
+	/* UI Colors */
+	--color-background: var(--gray-50);
+	--color-surface: var(--gray-0);
+	--color-text: var(--gray-900);
+	--color-text-muted: var(--gray-600);
+	--color-border: var(--gray-200);
+	--color-border-hover: var(--gray-300);
+
+	/* Game State Colors */
+	--color-new-game: var(--green-600);
+	--color-new-game-hover: var(--green-800);
+	--color-error: var(--red-50);
+	--color-error-border: var(--red-500);
+	--color-error-text: var(--red-600);
+	--color-error-pulse: var(--red-100);
+	--color-highlight: var(--blue-50);
+	--color-highlight-text: var(--blue-600);
+	--color-highlight-hover: var(--blue-100);
+	--color-highlight-hover-text: var(--blue-700);
+	--color-note-highlight: var(--purple-50);
+	--color-note-border: var(--purple-500);
+	--color-note-text: var(--purple-600);
+	--color-note-hover: var(--purple-100);
+	--color-note-hover-text: var(--purple-700);
+	/* Color-elimination cleanup */
+	--color-elimination: var(--orange-50);
+	--color-elimination-border: var(--orange-600);
+	--color-elimination-text: var(--orange-800);
+
+	/* ========================================
+	   LEGACY COMPATIBILITY LAYER
+	   ======================================== */
+
+	/* Maintain backward compatibility for existing components */
+	--color-white: var(--gray-0);
+	--color-light: var(--gray-50);
+	--color-light-hover: var(--gray-100);
+	--color-medium: var(--gray-200);
+	--color-medium-hover: var(--gray-300);
+	--color-dark: var(--gray-700);
+	--color-info: var(--blue-500);
+	--color-info-hover: var(--blue-700);
+	--color-shadow: rgba(var(--shadow-color), 0.1);
+	--color-shadow-strong: rgba(var(--shadow-color), 0.3);
+
+	/* ========================================
+	   GRADIENTS - Generated from color scale
+	   ======================================== */
+
+	/* Function-like gradient generation using color scale */
+	--gradient-primary: linear-gradient(
+		135deg,
+		var(--blue-500) 0%,
+		var(--blue-600) 100%
+	);
+	--gradient-primary-hover: linear-gradient(
+		135deg,
+		var(--blue-800) 0%,
+		var(--blue-700) 100%
+	);
+	--gradient-success: linear-gradient(
+		135deg,
+		var(--green-500) 0%,
+		var(--green-600) 100%
+	);
+	--gradient-success-hover: linear-gradient(
+		135deg,
+		var(--green-700) 0%,
+		var(--green-800) 100%
+	);
+	--gradient-warning: linear-gradient(
+		135deg,
+		var(--orange-500) 0%,
+		var(--orange-600) 100%
+	);
+	--gradient-warning-hover: linear-gradient(
+		135deg,
+		var(--orange-700) 0%,
+		var(--orange-800) 100%
+	);
+	--gradient-info: linear-gradient(
+		135deg,
+		var(--blue-500) 0%,
+		var(--blue-600) 100%
+	);
+	--gradient-info-hover: linear-gradient(
+		135deg,
+		var(--blue-700) 0%,
+		var(--blue-800) 100%
+	);
+	--gradient-new-game: linear-gradient(
+		135deg,
+		var(--green-600) 0%,
+		var(--green-500) 100%
+	);
+	--gradient-new-game-hover: linear-gradient(
+		135deg,
+		var(--green-800) 0%,
+		var(--green-700) 100%
+	);
+
+	/* Surface and utility gradients */
+	--gradient-surface: linear-gradient(
+		135deg,
+		var(--gray-0) 0%,
+		var(--gray-50) 100%
+	);
+	--gradient-toggle: linear-gradient(
+		135deg,
+		var(--gray-100) 0%,
+		var(--gray-200) 100%
+	);
+	--gradient-highlight: linear-gradient(
+		135deg,
+		var(--blue-50) 0%,
+		var(--blue-100) 100%
+	);
+	--gradient-note: linear-gradient(
+		135deg,
+		var(--purple-50) 0%,
+		var(--purple-100) 100%
+	);
+	--gradient-elimination: linear-gradient(
+		135deg,
+		var(--orange-50) 0%,
+		var(--orange-100) 100%
+	);
+
+	/* Complex multi-state gradients */
 	--gradient-highlight-note: linear-gradient(
 		135deg,
-		#e3f2fd 0%,
-		#f3e5f5 50%,
-		#bbdefb 100%
+		var(--blue-50) 0%,
+		var(--purple-50) 50%,
+		var(--blue-100) 100%
 	);
 	--gradient-highlight-elimination: linear-gradient(
 		135deg,
-		#e3f2fd 0%,
-		#fff3e0 50%,
-		#ffcc02 100%
+		var(--blue-50) 0%,
+		var(--orange-50) 50%,
+		var(--orange-100) 100%
 	);
 	--gradient-note-elimination: linear-gradient(
 		135deg,
-		#f3e5f5 0%,
-		#fff3e0 50%,
-		#ffcc02 100%
+		var(--purple-50) 0%,
+		var(--orange-50) 50%,
+		var(--orange-100) 100%
 	);
 	--gradient-all-hints: linear-gradient(
 		135deg,
-		#e3f2fd 0%,
-		#f3e5f5 33%,
-		#fff3e0 66%,
-		#ffcc02 100%
+		var(--blue-50) 0%,
+		var(--purple-50) 33%,
+		var(--orange-50) 66%,
+		var(--orange-100) 100%
 	);
 
-	/* Spacing Scale */
-	--space-xs: 0.25rem;
-	--space-sm: 0.375rem;
-	--space-md: 0.5rem;
-	--space-lg: 0.75rem;
-	--space-xl: 1rem;
-	--space-2xl: 1.25rem;
-	--space-3xl: 1.5rem;
+	/* ========================================
+	   SHADOWS - Systematic with alpha functions
+	   ======================================== */
 
-	/* Border Radius */
-	--radius-sm: 8px;
-	--radius-md: 12px;
-	--radius-lg: 16px;
-	--radius-full: 50%;
+	/* Base shadow values with consistent alpha progression */
+	--shadow-color: 0, 0, 0;
+	--shadow-xs: 0 1px 2px rgba(var(--shadow-color), 0.05);
+	--shadow-sm: 0 1px 3px rgba(var(--shadow-color), 0.1);
+	--shadow-md: 0 4px 20px rgba(var(--shadow-color), 0.1);
+	--shadow-lg: 0 8px 32px rgba(var(--shadow-color), 0.12);
+	--shadow-xl: 0 12px 48px rgba(var(--shadow-color), 0.15);
+	--shadow-button: 0 4px 12px rgba(var(--shadow-color), 0.3);
+	--shadow-inset: inset 0 2px 4px rgba(var(--shadow-color), 0.1);
 
-	/* Shadows */
-	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-	--shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
-	--shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-	--shadow-button: 0 4px 12px rgba(0, 0, 0, 0.3);
-	--shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+	/* Colored shadows for hint states */
 	--shadow-hint-primary: 0 0 8px rgba(33, 150, 243, 0.4);
 	--shadow-hint-primary-strong: 0 0 16px rgba(33, 150, 243, 0.8);
 	--shadow-hint-secondary: 0 0 8px rgba(156, 39, 176, 0.4);
 	--shadow-hint-elimination: 0 0 8px rgba(255, 152, 0, 0.4);
 	--shadow-hint-elimination-strong: 0 0 12px rgba(255, 152, 0, 0.7);
 
-	/* Typography */
-	--font-size-xs: 0.75rem;
-	--font-size-sm: 0.85rem;
-	--font-size-md: 0.9rem;
-	--font-size-lg: 1rem;
-	--font-size-xl: 1.4rem;
-	--font-size-2xl: 1.5rem;
-	--font-size-3xl: 1.8rem;
+	/* ========================================
+	   DESIGN TOKENS - Organized by function
+	   ======================================== */
 
+	/* Spacing Scale - Consistent mathematical progression */
+	--space-xs: 0.25rem; /* 4px */
+	--space-sm: 0.375rem; /* 6px */
+	--space-md: 0.5rem; /* 8px */
+	--space-lg: 0.75rem; /* 12px */
+	--space-xl: 1rem; /* 16px */
+	--space-2xl: 1.25rem; /* 20px */
+	--space-3xl: 1.5rem; /* 24px */
+	--space-4xl: 2rem; /* 32px */
+
+	/* Border Radius Scale */
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
+	--radius-xl: 24px;
+	--radius-full: 50%;
+
+	/* Typography Scale - Modular scale based on 1rem */
+	--font-size-xs: 0.75rem; /* 12px */
+	--font-size-sm: 0.85rem; /* 13.6px */
+	--font-size-md: 0.9rem; /* 14.4px */
+	--font-size-lg: 1rem; /* 16px */
+	--font-size-xl: 1.4rem; /* 22.4px */
+	--font-size-2xl: 1.5rem; /* 24px */
+	--font-size-3xl: 1.8rem; /* 28.8px */
+
+	/* Font Weight Scale */
 	--font-weight-thin: 100;
 	--font-weight-light: 300;
 	--font-weight-normal: 500;
 	--font-weight-bold: 600;
+	--font-weight-black: 900;
 
-	/* Transitions */
+	/* Animation & Transitions */
 	--transition-fast: 0.2s ease;
 	--transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-	/* Breakpoints (for reference in media queries) */
+	/* Layout Constants */
 	--breakpoint-mobile: 768px;
 	--breakpoint-small-height: 600px;
-
-	/* Z-index Scale */
 	--z-modal: 1000;
 	--z-dropdown: 100;
 	--z-overlay: 50;
 }
 
+/* ========================================
+   RESPONSIVE DESIGN - Mobile Optimization
+   ======================================== */
+
 /* Mobile viewport adjustments */
 @media (max-width: 768px) {
 	:root {
-		--space-xs: 0.2rem;
-		--space-sm: 0.25rem;
-		--space-md: 0.375rem;
-		--space-lg: 0.5rem;
-		--space-xl: 0.75rem;
-		--space-2xl: 1rem;
+		/* Proportionally reduce spacing for mobile */
+		--space-xs: calc(var(--space-xs) * 0.8);
+		--space-sm: calc(var(--space-sm) * 0.8);
+		--space-md: calc(var(--space-md) * 0.75);
+		--space-lg: calc(var(--space-lg) * 0.67);
+		--space-xl: calc(var(--space-xl) * 0.75);
+		--space-2xl: calc(var(--space-2xl) * 0.8);
 
-		--font-size-xs: 0.7rem;
-		--font-size-sm: 0.75rem;
-		--font-size-md: 0.8rem;
-		--font-size-lg: 0.9rem;
-		--font-size-xl: 1.2rem;
-		--font-size-2xl: 1.25rem;
-		--font-size-3xl: 1.5rem;
+		/* Adjust typography for mobile readability */
+		--font-size-xs: calc(var(--font-size-xs) * 0.93);
+		--font-size-sm: calc(var(--font-size-sm) * 0.88);
+		--font-size-md: calc(var(--font-size-md) * 0.89);
+		--font-size-lg: calc(var(--font-size-lg) * 0.9);
+		--font-size-xl: calc(var(--font-size-xl) * 0.86);
+		--font-size-2xl: calc(var(--font-size-2xl) * 0.83);
+		--font-size-3xl: calc(var(--font-size-3xl) * 0.83);
 	}
 }
 
 /* Small height viewport adjustments */
 @media (max-height: 600px) {
 	:root {
-		--space-xs: 0.15rem;
-		--space-sm: 0.2rem;
-		--space-md: 0.25rem;
-		--space-lg: 0.375rem;
-		--space-xl: 0.5rem;
-		--space-2xl: 0.75rem;
+		/* Compress spacing vertically for small screens */
+		--space-xs: calc(var(--space-xs) * 0.6);
+		--space-sm: calc(var(--space-sm) * 0.53);
+		--space-md: calc(var(--space-md) * 0.5);
+		--space-lg: calc(var(--space-lg) * 0.5);
+		--space-xl: calc(var(--space-xl) * 0.5);
+		--space-2xl: calc(var(--space-2xl) * 0.6);
 
-		--font-size-xs: 0.65rem;
-		--font-size-sm: 0.7rem;
-		--font-size-md: 0.75rem;
-		--font-size-lg: 0.8rem;
-		--font-size-xl: 1rem;
-		--font-size-2xl: 1.1rem;
-		--font-size-3xl: 1.4rem;
+		/* Reduce font sizes for small height screens */
+		--font-size-xs: calc(var(--font-size-xs) * 0.87);
+		--font-size-sm: calc(var(--font-size-sm) * 0.82);
+		--font-size-md: calc(var(--font-size-md) * 0.83);
+		--font-size-lg: calc(var(--font-size-lg) * 0.8);
+		--font-size-xl: calc(var(--font-size-xl) * 0.71);
+		--font-size-2xl: calc(var(--font-size-2xl) * 0.73);
+		--font-size-3xl: calc(var(--font-size-3xl) * 0.78);
 	}
 }
 
-/* Dark Mode Support */
+/* ========================================
+   DARK MODE SUPPORT - Systematic approach
+   ======================================== */
+
 @media (prefers-color-scheme: dark) {
 	:root {
-		/* Dark Mode Color Palette */
-		--color-primary: #4dabf7;
-		--color-primary-hover: #339af0;
-		--color-success: #51cf66;
-		--color-success-hover: #40c057;
-		--color-warning: #ffd43b;
-		--color-warning-hover: #fab005;
-		--color-info: #22d3ee;
-		--color-info-hover: #06b6d4;
-		--color-danger: #ff6b6b;
-		--color-danger-hover: #fa5252;
+		/* Dark Mode Color Scale Overrides */
+		--blue-50: #1e3a5f;
+		--blue-100: #2c5282;
+		--blue-500: #4dabf7;
+		--blue-600: #74c0fc;
+		--blue-700: #339af0;
+		--blue-800: #339af0;
 
-		/* Dark Neutral Colors */
-		--color-white: #1a1a1a;
-		--color-light: #2d2d2d;
-		--color-light-hover: #3a3a3a;
-		--color-medium: #4a4a4a;
-		--color-medium-hover: #5a5a5a;
-		--color-dark: #e9ecef;
-		--color-text: #f8f9fa;
-		--color-text-muted: #adb5bd;
+		--green-50: #1a2e1a;
+		--green-100: #2d4a2d;
+		--green-500: #51cf66;
+		--green-600: #69db7c;
+		--green-700: #40c057;
+		--green-800: #51cf66;
 
-		/* Dark Semantic Colors */
+		--orange-50: #2d2512;
+		--orange-100: #3d3118;
+		--orange-500: #ffd43b;
+		--orange-600: #ffd43b;
+		--orange-700: #fab005;
+		--orange-800: #ffe066;
+
+		--red-50: #2d1b1b;
+		--red-100: #4a1d1d;
+		--red-500: #ff6b6b;
+		--red-600: #ffc9c9;
+		--red-700: #fa5252;
+		--red-800: #ffe066;
+
+		--purple-50: #2d1b2f;
+		--purple-100: #3d2240;
+		--purple-500: #da77f2;
+		--purple-600: #e599f7;
+		--purple-700: #cc5de8;
+
+		/* Dark Mode Neutral Scale */
+		--gray-0: #1a1a1a;
+		--gray-50: #2d2d2d;
+		--gray-100: #3a3a3a;
+		--gray-200: #404040;
+		--gray-300: #525252;
+		--gray-600: #adb5bd;
+		--gray-700: #e9ecef;
+		--gray-900: #f8f9fa;
+
+		/* Update background and surface for dark mode */
 		--color-background: #121212;
 		--color-surface: #1e1e1e;
-		--color-border: #404040;
-		--color-border-hover: #525252;
-		--color-shadow: rgba(0, 0, 0, 0.3);
-		--color-shadow-strong: rgba(0, 0, 0, 0.6);
 
-		/* Dark Game-specific Colors */
-		--color-new-game: #69db7c;
-		--color-new-game-hover: #51cf66;
-		--color-error: #2d1b1b;
-		--color-error-border: #ff6b6b;
-		--color-error-text: #ffc9c9;
-		--color-error-pulse: #4a1d1d;
-		--color-highlight: #1e3a5f;
-		--color-highlight-text: #74c0fc;
-		--color-highlight-hover: #2c5282;
-		--color-highlight-hover-text: #339af0;
-		--color-note-highlight: #2d1b2f;
-		--color-note-border: #da77f2;
-		--color-note-text: #e599f7;
-		--color-note-hover: #3d2240;
-		--color-note-hover-text: #cc5de8;
-		--color-elimination: #2d2512;
-		--color-elimination-border: #ffd43b;
-		--color-elimination-text: #ffe066;
+		/* Dark mode shadow adjustments */
+		--shadow-color: 0, 0, 0;
+		--shadow-xs: 0 1px 2px rgba(var(--shadow-color), 0.4);
+		--shadow-sm: 0 1px 3px rgba(var(--shadow-color), 0.3);
+		--shadow-md: 0 4px 20px rgba(var(--shadow-color), 0.4);
+		--shadow-lg: 0 8px 32px rgba(var(--shadow-color), 0.5);
+		--shadow-xl: 0 12px 48px rgba(var(--shadow-color), 0.6);
+		--shadow-button: 0 4px 12px rgba(var(--shadow-color), 0.6);
+		--shadow-inset: inset 0 2px 4px rgba(var(--shadow-color), 0.3);
 
-		/* Dark Gradients */
-		--gradient-success: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-		--gradient-success-hover: linear-gradient(135deg, #40c057 0%, #2f9e44 100%);
-		--gradient-warning: linear-gradient(135deg, #ffd43b 0%, #fd7e14 100%);
-		--gradient-warning-hover: linear-gradient(135deg, #fab005 0%, #e8590c 100%);
-		--gradient-info: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-		--gradient-info-hover: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-		--gradient-new-game: linear-gradient(135deg, #69db7c 0%, #37b24d 100%);
-		--gradient-new-game-hover: linear-gradient(
-			135deg,
-			#51cf66 0%,
-			#2f9e44 100%
-		);
-		--gradient-surface: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-		--gradient-toggle: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
-		--gradient-highlight: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
-		--gradient-note: linear-gradient(135deg, #2d1b2f 0%, #3d2240 100%);
-		--gradient-elimination: linear-gradient(135deg, #2d2512 0%, #3d3118 100%);
-
-		/* Dark Shadows */
-		--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-		--shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-		--shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-		--shadow-button: 0 4px 12px rgba(0, 0, 0, 0.6);
-		--shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+		/* Dark mode colored shadows */
 		--shadow-hint-primary: 0 0 8px rgba(116, 192, 252, 0.6);
 		--shadow-hint-primary-strong: 0 0 16px rgba(116, 192, 252, 0.9);
 		--shadow-hint-secondary: 0 0 8px rgba(218, 119, 242, 0.6);
