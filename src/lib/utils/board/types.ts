@@ -28,7 +28,7 @@ export type CellCallback<T = void> = (
 	cell: CellData,
 	row: number,
 	col: number,
-	board: CellData[][]
+	board: CellData[][],
 ) => T;
 
 /**
@@ -38,5 +38,5 @@ export type CellPredicate = (
 	cell: CellData,
 	row: number,
 	col: number,
-	board: CellData[][]
+	board: CellData[][],
 ) => boolean;

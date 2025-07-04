@@ -10,7 +10,7 @@ export function setCellValue(
 	row: number,
 	col: number,
 	value: number | null,
-	isInitial: boolean = false
+	isInitial: boolean = false,
 ): void {
 	board[row][col].value = value;
 	if (isInitial) {
@@ -25,7 +25,7 @@ export function setCellCandidates(
 	board: CellData[][],
 	row: number,
 	col: number,
-	candidates: Set<number>
+	candidates: Set<number>,
 ): void {
 	board[row][col].candidates = new Set(candidates);
 }

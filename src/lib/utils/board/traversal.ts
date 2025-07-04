@@ -6,10 +6,7 @@ import type { CellCallback, CellPredicate } from './types.js';
 /**
  * Traverse all cells in the board and execute a callback for each
  */
-export function forEachCell(
-	board: CellData[][],
-	callback: CellCallback
-): void {
+export function forEachCell(board: CellData[][], callback: CellCallback): void {
 	for (let row = 0; row < 9; row++) {
 		for (let col = 0; col < 9; col++) {
 			callback(board[row][col], row, col, board);
@@ -22,16 +19,16 @@ export function forEachCell(
  */
 export function findCells(
 	board: CellData[][],
-	predicate: CellPredicate
+	predicate: CellPredicate,
 ): Array<{ row: number; col: number; cell: CellData }> {
 	const results: Array<{ row: number; col: number; cell: CellData }> = [];
-	
+
 	forEachCell(board, (cell, row, col) => {
 		if (predicate(cell, row, col, board)) {
 			results.push({ row, col, cell });
 		}
 	});
-	
+
 	return results;
 }
 
@@ -40,7 +37,7 @@ export function findCells(
  */
 export function countCells(
 	board: CellData[][],
-	predicate: CellPredicate
+	predicate: CellPredicate,
 ): number {
 	let count = 0;
 	forEachCell(board, (cell, row, col) => {
@@ -56,7 +53,7 @@ export function countCells(
  */
 export function allCells(
 	board: CellData[][],
-	predicate: CellPredicate
+	predicate: CellPredicate,
 ): boolean {
 	for (let row = 0; row < 9; row++) {
 		for (let col = 0; col < 9; col++) {
@@ -73,16 +70,16 @@ export function allCells(
  */
 export function mapCells<T>(
 	board: CellData[][],
-	mapper: CellCallback<T>
+	mapper: CellCallback<T>,
 ): T[][] {
 	const result: T[][] = [];
-	
+
 	for (let row = 0; row < 9; row++) {
 		result[row] = [];
 		for (let col = 0; col < 9; col++) {
 			result[row][col] = mapper(board[row][col], row, col, board);
 		}
 	}
-	
+
 	return result;
 }

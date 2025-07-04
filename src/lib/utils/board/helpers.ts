@@ -31,7 +31,10 @@ export function getCellsWithSameNumber(
 	board: CellData[][],
 	targetNumber: number,
 ): { row: number; col: number }[] {
-	return findCells(board, hasValue(targetNumber)).map(({ row, col }) => ({ row, col }));
+	return findCells(board, hasValue(targetNumber)).map(({ row, col }) => ({
+		row,
+		col,
+	}));
 }
 
 /**

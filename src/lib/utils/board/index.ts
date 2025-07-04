@@ -19,12 +19,7 @@ export {
 } from './traversal.js';
 
 // Re-export predicates
-export {
-	isEmpty,
-	isFilled,
-	isInitial,
-	hasValue,
-} from './predicates.js';
+export { isEmpty, isFilled, isInitial, hasValue } from './predicates.js';
 
 // Re-export manipulation functions
 export {
@@ -34,10 +29,7 @@ export {
 } from './manipulation.js';
 
 // Re-export validation functions
-export {
-	validateBoard,
-	validateBoardSimple,
-} from './validation.js';
+export { validateBoard, validateBoardSimple } from './validation.js';
 
 // Re-export conversion functions
 export {

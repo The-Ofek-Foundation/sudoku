@@ -10,7 +10,7 @@ import { isFilled } from './predicates.js';
 export function getPossibleNumbers(
 	board: CellData[][],
 	row: number,
-	col: number
+	col: number,
 ): Set<number> {
 	const possible = new Set<number>([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
@@ -50,7 +50,7 @@ export function updateCandidatesAfterPlacement(
 	board: CellData[][],
 	row: number,
 	col: number,
-	num: number
+	num: number,
 ): void {
 	const subgridRow = Math.floor(row / 3) * 3;
 	const subgridCol = Math.floor(col / 3) * 3;

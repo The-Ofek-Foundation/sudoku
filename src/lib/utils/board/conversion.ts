@@ -6,7 +6,10 @@ import type { CellData } from '$lib';
  * Convert board to string format for sudoku solver
  */
 export function boardToString(board: CellData[][]): string {
-	return board.flat().map(cell => cell.value?.toString() || '.').join('');
+	return board
+		.flat()
+		.map((cell) => cell.value?.toString() || '.')
+		.join('');
 }
 
 /**
