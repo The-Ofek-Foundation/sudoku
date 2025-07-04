@@ -78,8 +78,8 @@
 			incorrect_value: 'Incorrect Value',
 			missing_candidate: 'Missing Candidate',
 			last_remaining_in_box: 'Last Remaining in Box',
-			last_remaining_in_row: 'Last Remaining in Column', // Flipped for UI display
-			last_remaining_in_column: 'Last Remaining in Row', // Flipped for UI display
+			last_remaining_in_row: 'Last Remaining in Row',
+			last_remaining_in_column: 'Last Remaining in Column',
 			naked_single: 'Naked Single',
 			naked_pairs: 'Naked Pairs',
 			naked_triples: 'Naked Triples',
