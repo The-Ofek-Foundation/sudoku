@@ -8,6 +8,7 @@ export interface KeyboardHandlerContext {
 	colorKuMode: boolean;
 	inputMode: 'normal' | 'note';
 	difficulty: 'easy' | 'medium' | 'hard';
+	gameMode: 'solving' | 'manual' | 'competition';
 	showingHint: boolean;
 	board: any[][]; // Board type would need to be imported properly
 
@@ -21,6 +22,8 @@ export interface KeyboardHandlerContext {
 	generatePuzzle: () => void;
 	startGame: () => void;
 	startManualGame: () => void;
+	startSelectedGameMode: () => void;
+	cycleGameMode: () => void;
 	showShareModalForConfiguration: () => void;
 	getHint: () => void;
 	closeHint: () => void;
@@ -154,10 +157,10 @@ function handleConfiguringPhaseShortcuts(
 			context.setDifficulty(difficulties[nextIndex]);
 			break;
 		case 's':
-			context.startGame();
+			context.startSelectedGameMode();
 			break;
 		case 'm':
-			context.startManualGame();
+			context.cycleGameMode();
 			break;
 		case 'x':
 			// Share current configuration

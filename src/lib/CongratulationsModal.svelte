@@ -30,20 +30,28 @@
 	$: if (isOpen) {
 		currentMessage = getRandomMessage();
 	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			onClose();
+		}
+	}
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 {#if isOpen}
 	<div
 		class="modal-overlay"
 		on:click={onClose}
-		on:keydown
+		on:keydown={handleKeydown}
 		role="button"
 		tabindex="0"
 	>
 		<div
 			class="modal-content"
 			on:click|stopPropagation
-			on:keydown
+			on:keydown={handleKeydown}
 			role="button"
 			tabindex="0"
 		>

@@ -64,6 +64,7 @@
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
 	let difficulty: Difficulty = 'easy';
+	let gameMode: 'solving' | 'manual' | 'competition' = 'solving'; // Track selected game mode
 	let isGameCompleted: boolean = false;
 	let gridSize = '600px'; // Default size
 	let cyclingNumber: number | null = null; // Current number when cycling with Tab
@@ -323,6 +324,31 @@
 			}
 		});
 		saveToHistory();
+	}
+
+	function startSelectedGameMode() {
+		switch (gameMode) {
+			case 'solving':
+				startGame();
+				break;
+			case 'manual':
+				startManualGame();
+				break;
+			case 'competition':
+				startCompetitionGame();
+				break;
+		}
+	}
+
+	function cycleGameMode() {
+		const modes: Array<'solving' | 'manual' | 'competition'> = [
+			'solving',
+			'manual',
+			'competition',
+		];
+		const currentIndex = modes.indexOf(gameMode);
+		const nextIndex = (currentIndex + 1) % modes.length;
+		gameMode = modes[nextIndex];
 	}
 
 	function startGame() {
@@ -676,6 +702,26 @@
 		}
 	}
 
+	function handleMainClick(event: MouseEvent) {
+		// Only deselect if clicking on the main element itself (not its children)
+		if (event.target === event.currentTarget) {
+			selectedCell = null;
+			highlightedNumber = null;
+			cyclingNumber = null;
+		}
+	}
+
+	function handleMainKeydown(event: KeyboardEvent) {
+		// Handle the same deselection behavior for keyboard accessibility
+		if (event.key === 'Enter' || event.key === ' ') {
+			if (event.target === event.currentTarget) {
+				selectedCell = null;
+				highlightedNumber = null;
+				cyclingNumber = null;
+			}
+		}
+	}
+
 	onMount(() => {
 		// Check if this is a shared challenge
 		challengeData = getChallengeFromUrl();
@@ -692,6 +738,7 @@
 			colorKuMode,
 			inputMode,
 			difficulty,
+			gameMode,
 			showingHint,
 			board,
 
@@ -705,6 +752,8 @@
 			generatePuzzle,
 			startGame,
 			startManualGame,
+			startSelectedGameMode,
+			cycleGameMode,
 			showShareModalForConfiguration,
 			getHint,
 			closeHint,
@@ -744,84 +793,92 @@
 <main>
 	<a href="#game-content" class="skip-link">Skip to main content</a>
 
-	{#if showChallengeStart && challengeData}
-		<ChallengeStart
-			shareText={generateShareText(
-				challengeData.completionTime,
-				challengeData.difficulty,
-			)}
-			difficulty={challengeData.difficulty}
-			challengerTime={challengeData.completionTime}
-			colorKuMode={challengeData.colorKuMode}
-			onStartChallenge={startChallengeFromUrl}
-		/>
-	{:else}
-		<div id="game-content">
-			<SudokuGrid
-				bind:board
-				bind:selectedCell
-				{gamePhase}
-				{errorCell}
-				{highlightedNumber}
-				{colorKuMode}
-				{highlightedSquares}
-				{showingHint}
-				bind:gridSize
-				onCellSelected={(data) => updateHighlightedNumber(data.row, data.col)}
+	<div
+		class="click-area"
+		on:click={handleMainClick}
+		on:keydown={handleMainKeydown}
+		role="button"
+		tabindex="-1"
+	>
+		{#if showChallengeStart && challengeData}
+			<ChallengeStart
+				shareText={generateShareText(
+					challengeData.completionTime,
+					challengeData.difficulty,
+				)}
+				difficulty={challengeData.difficulty}
+				challengerTime={challengeData.completionTime}
+				colorKuMode={challengeData.colorKuMode}
+				onStartChallenge={startChallengeFromUrl}
 			/>
-
-			{#if errorMessage}
-				<div class="error-message">{errorMessage}</div>
-			{/if}
-
-			{#if showingHint && currentHint}
-				<HintDisplay
-					bind:this={hintDisplayRef}
-					gridSize={controlPanelWidth}
-					{colorKuMode}
-					hint={currentHint}
-					onClose={closeHint}
-					onHighlight={handleHighlight}
-					onClearHighlights={handleClearHighlights}
-					onApplyHint={handleApplyHint}
-				/>
-			{:else}
-				<Controls
-					bind:inputMode
-					bind:colorKuMode
-					bind:difficulty
+		{:else}
+			<div id="game-content">
+				<SudokuGrid
+					bind:board
+					bind:selectedCell
 					{gamePhase}
 					{errorCell}
-					gridSize={controlPanelWidth}
 					{highlightedNumber}
-					{isGameCompleted}
-					selectedCellCandidates={selectedCell &&
-					(gamePhase === 'solving' ||
-						gamePhase === 'manual' ||
-						gamePhase === 'competition') &&
-					board[selectedCell.row][selectedCell.col].value === null
-						? board[selectedCell.row][selectedCell.col].candidates
-						: new Set()}
-					numberCounts={getNumberCounts(board)}
-					{isTimerRunning}
-					{timerStartTime}
-					{timerFinalTime}
-					onStartGame={startGame}
-					onStartManualGame={startManualGame}
-					onStartCompetitionGame={startCompetitionGame}
-					onHandleDelete={handleDelete}
-					onUndo={undo}
-					onGeneratePuzzle={generatePuzzle}
-					onHandleInput={handleInput}
-					onGetHint={getHint}
-					onShare={gamePhase === 'competition' && isGameCompleted
-						? showShareModalForCompletion
-						: showShareModalForConfiguration}
-					onNewGame={startNewGame}
+					{colorKuMode}
+					{highlightedSquares}
+					{showingHint}
+					bind:gridSize
+					onCellSelected={(data) => updateHighlightedNumber(data.row, data.col)}
 				/>
-			{/if}
-		</div>
-	{/if}
+
+				{#if errorMessage}
+					<div class="error-message">{errorMessage}</div>
+				{/if}
+
+				{#if showingHint && currentHint}
+					<HintDisplay
+						bind:this={hintDisplayRef}
+						gridSize={controlPanelWidth}
+						{colorKuMode}
+						hint={currentHint}
+						onClose={closeHint}
+						onHighlight={handleHighlight}
+						onClearHighlights={handleClearHighlights}
+						onApplyHint={handleApplyHint}
+					/>
+				{:else}
+					<Controls
+						bind:inputMode
+						bind:colorKuMode
+						bind:difficulty
+						{gamePhase}
+						{errorCell}
+						gridSize={controlPanelWidth}
+						{highlightedNumber}
+						{isGameCompleted}
+						selectedCellCandidates={selectedCell &&
+						(gamePhase === 'solving' ||
+							gamePhase === 'manual' ||
+							gamePhase === 'competition') &&
+						board[selectedCell.row][selectedCell.col].value === null
+							? board[selectedCell.row][selectedCell.col].candidates
+							: new Set()}
+						numberCounts={getNumberCounts(board)}
+						{isTimerRunning}
+						{timerStartTime}
+						{timerFinalTime}
+						onStartGame={startGame}
+						onStartManualGame={startManualGame}
+						onStartCompetitionGame={startCompetitionGame}
+						onHandleDelete={handleDelete}
+						onUndo={undo}
+						onGeneratePuzzle={generatePuzzle}
+						onHandleInput={handleInput}
+						onGetHint={getHint}
+						onShare={gamePhase === 'competition' && isGameCompleted
+							? showShareModalForCompletion
+							: showShareModalForConfiguration}
+						onNewGame={startNewGame}
+					/>
+				{/if}
+			</div>
+		{/if}
+	</div>
 
 	<ShareModal
 		isOpen={showShareModal}
@@ -852,6 +909,18 @@
 		justify-content: center;
 		min-height: 100vh;
 		min-height: 100dvh; /* Dynamic viewport height for mobile */
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	.click-area {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		min-height: 100vh;
+		min-height: 100dvh;
 		padding: var(--space-xl);
 		padding-bottom: max(
 			var(--space-xl),
@@ -859,11 +928,19 @@
 		); /* Account for mobile safe areas */
 		box-sizing: border-box;
 		gap: var(--space-xl);
+		/* Remove default button styles for accessibility wrapper */
+		background: none;
+		border: none;
+		outline: none;
+		font-family: inherit;
+		color: inherit;
+		text-align: inherit;
+		cursor: default;
 	}
 
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
-		main {
+		.click-area {
 			padding: var(--space-md);
 			padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
 			gap: var(--space-md);
@@ -872,7 +949,7 @@
 
 	/* Small screen height adjustments */
 	@media (max-height: 600px) {
-		main {
+		.click-area {
 			padding: var(--space-xs);
 			padding-bottom: max(var(--space-xs), env(safe-area-inset-bottom));
 			gap: var(--space-xs);
