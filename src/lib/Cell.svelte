@@ -8,6 +8,7 @@
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
 	export let eliminationCandidates: string[] = []; // Specific candidates to highlight for elimination
+	export let candidateHighlights: { digit: string; color: 'on' | 'off' }[] = []; // Candidates to highlight with ON/OFF colors
 
 	function getColorForNumber(num: number): string {
 		return colorKuColors[num] || '#000000';
@@ -23,6 +24,13 @@
 
 	function shouldHighlightEliminationCandidate(noteNumber: number): boolean {
 		return eliminationCandidates.includes(noteNumber.toString());
+	}
+
+	function getCandidateHighlightColor(noteNumber: number): 'on' | 'off' | null {
+		const highlight = candidateHighlights.find(
+			(h) => h.digit === noteNumber.toString(),
+		);
+		return highlight ? highlight.color : null;
 	}
 </script>
 
@@ -49,6 +57,8 @@
 					class:elimination-highlight={shouldHighlightEliminationCandidate(
 						i + 1,
 					)}
+					class:coloring-on={getCandidateHighlightColor(i + 1) === 'on'}
+					class:coloring-off={getCandidateHighlightColor(i + 1) === 'off'}
 				>
 					{#if candidates.has(i + 1)}
 						{#if colorKuMode}
@@ -57,6 +67,8 @@
 								class:elimination-highlight={shouldHighlightEliminationCandidate(
 									i + 1,
 								)}
+								class:coloring-on={getCandidateHighlightColor(i + 1) === 'on'}
+								class:coloring-off={getCandidateHighlightColor(i + 1) === 'off'}
 								style="background-color: {getColorForNumber(i + 1)}"
 							></div>
 						{:else}
@@ -239,5 +251,34 @@
 			background: rgba(255, 152, 0, 0.35);
 			transform: scale(1.05);
 		}
+	}
+
+	/* Candidate coloring highlights for Simple Coloring technique */
+	.note-cell.coloring-on {
+		color: white;
+		font-weight: var(--font-weight-bold);
+		background: rgba(220, 38, 127, 0.8); /* Pink/magenta for "ON" */
+		border: 2px solid rgb(220, 38, 127);
+		border-radius: var(--radius-xs);
+	}
+
+	.note-cell.coloring-off {
+		color: white;
+		font-weight: var(--font-weight-bold);
+		background: rgba(34, 197, 94, 0.8); /* Green for "OFF" */
+		border: 2px solid rgb(34, 197, 94);
+		border-radius: var(--radius-xs);
+	}
+
+	.note-color-circle.coloring-on {
+		border: 3px solid rgb(220, 38, 127) !important;
+		box-shadow: 0 0 8px rgba(220, 38, 127, 0.6);
+		transform: scale(1.2);
+	}
+
+	.note-color-circle.coloring-off {
+		border: 3px solid rgb(34, 197, 94) !important;
+		box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+		transform: scale(1.2);
 	}
 </style>

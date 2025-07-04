@@ -50,6 +50,7 @@
 		type SimpleValidationResult,
 	} from '$lib/utils/boardUtils.js';
 	import { gamePhaseManager, type GamePhaseContext } from '$lib/gamePhases';
+	import { applyHint } from '$lib/utils/hintApplication.js';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js
 	// The library has been modified to be used as an ES module.
@@ -79,7 +80,14 @@
 		| {
 				squares?: string[];
 				unit?: { type: 'row' | 'column' | 'box'; index: number };
-				highlightType: 'primary' | 'secondary' | 'elimination';
+				units?: { type: 'row' | 'column' | 'box'; index: number }[];
+				candidateEliminations?: { square: string; digits: string[] }[];
+				candidateHighlights?: {
+					square: string;
+					digit: string;
+					color: 'on' | 'off';
+				}[];
+				highlightType: 'primary' | 'secondary' | 'elimination' | 'coloring';
 		  }[]
 		| null = null;
 	let hintDisplayRef: HintDisplay; // Reference to HintDisplay component
@@ -470,8 +478,14 @@
 	function handleHighlight(data: {
 		squares?: string[];
 		unit?: { type: 'row' | 'column' | 'box'; index: number };
+		units?: { type: 'row' | 'column' | 'box'; index: number }[];
 		candidateEliminations?: { square: string; digits: string[] }[];
-		highlightType: 'primary' | 'secondary' | 'elimination';
+		candidateHighlights?: {
+			square: string;
+			digit: string;
+			color: 'on' | 'off';
+		}[];
+		highlightType: 'primary' | 'secondary' | 'elimination' | 'coloring';
 	}) {
 		if (!highlightedSquares) {
 			highlightedSquares = [data];
@@ -496,52 +510,13 @@
 
 		saveToHistory();
 
+		// Apply the hint using the generic utility function
+		board = applyHint(board, currentHint, gamePhase);
+
+		// Clear error state for error hints
 		if (currentHint.type === 'error') {
-			// Fix incorrect value
-			const { row, col } = squareToCoordinates(currentHint.square);
-			board[row][col].value = parseInt(currentHint.correctValue);
-			// Clear error state
 			errorCell = null;
-		} else if (currentHint.type === 'missing_candidate') {
-			// Add missing candidate
-			const { row, col } = squareToCoordinates(currentHint.square);
-			board[row][col].candidates.add(parseInt(currentHint.missingDigit));
-		} else if (currentHint.type === 'single_cell') {
-			// Place the digit
-			const { row, col } = squareToCoordinates(currentHint.square);
-			board[row][col].value = parseInt(currentHint.digit);
-			board[row][col].candidates.clear();
-
-			// In solving mode, update notes in related cells
-			if (gamePhase === 'solving') {
-				updateCandidatesAfterPlacement(
-					board,
-					row,
-					col,
-					parseInt(currentHint.digit),
-				);
-			}
-		} else if (
-			currentHint.type === 'naked_set' ||
-			currentHint.type === 'hidden_set'
-		) {
-			// Remove candidates
-			for (const square of currentHint.eliminationCells || []) {
-				const { row, col } = squareToCoordinates(square);
-				for (const digit of currentHint.eliminationDigits || []) {
-					board[row][col].candidates.delete(parseInt(digit));
-				}
-			}
-		} else if (currentHint.type === 'intersection_removal') {
-			// Remove candidates from elimination cells
-			for (const square of currentHint.eliminationCells || []) {
-				const { row, col } = squareToCoordinates(square);
-				board[row][col].candidates.delete(parseInt(currentHint.digit));
-			}
 		}
-
-		// Trigger reactivity
-		board = board;
 
 		// If puzzle is complete and not in competition mode, show congratulations
 		if (

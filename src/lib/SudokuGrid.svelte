@@ -18,26 +18,37 @@
 		| {
 				squares?: string[];
 				unit?: { type: 'row' | 'column' | 'box'; index: number };
+				units?: { type: 'row' | 'column' | 'box'; index: number }[];
 				candidateEliminations?: { square: string; digits: string[] }[];
-				highlightType: 'primary' | 'secondary' | 'elimination';
+				candidateHighlights?: {
+					square: string;
+					digit: string;
+					color: 'on' | 'off';
+				}[];
+				highlightType: 'primary' | 'secondary' | 'elimination' | 'coloring';
 		  }[]
 		| null = null;
 	export let showingHint: boolean = false; // New prop to indicate if hint is showing
-	// Pre-compute candidate eliminations reactively
+	// Pre-compute candidate eliminations and highlights reactively
 	$: cellHighlights = (() => {
 		// Force reactivity - accessing highlightedSquares ensures this runs when it changes
 		if (highlightedSquares) {
 			/* dependency tracking */
 		}
 		const candidateEliminations: Record<string, string[]> = {};
+		const candidateHighlights: Record<
+			string,
+			{ digit: string; color: 'on' | 'off' }[]
+		> = {};
 
 		for (let i = 0; i < 9; i++) {
 			for (let j = 0; j < 9; j++) {
 				const key = `${i}-${j}`;
 				candidateEliminations[key] = getCellCandidateEliminations(i, j);
+				candidateHighlights[key] = getCellCandidateHighlights(i, j);
 			}
 		}
-		return { candidateEliminations };
+		return { candidateEliminations, candidateHighlights };
 	})();
 
 	let gridContainer: HTMLElement;
@@ -66,6 +77,32 @@
 
 		// Remove duplicates
 		return [...new Set(eliminations)];
+	}
+
+	// Helper function to get candidate highlights for a cell (ON/OFF coloring)
+	function getCellCandidateHighlights(
+		row: number,
+		col: number,
+	): { digit: string; color: 'on' | 'off' }[] {
+		if (!highlightedSquares) return [];
+
+		const square = coordinatesToSquare(row, col);
+		const highlights: { digit: string; color: 'on' | 'off' }[] = [];
+
+		for (const highlight of highlightedSquares) {
+			if (highlight.candidateHighlights) {
+				for (const candidateHighlight of highlight.candidateHighlights) {
+					if (candidateHighlight.square === square) {
+						highlights.push({
+							digit: candidateHighlight.digit,
+							color: candidateHighlight.color,
+						});
+					}
+				}
+			}
+		}
+
+		return highlights;
 	}
 
 	function isHighlighted(row: number, col: number) {
@@ -154,12 +191,29 @@
 	$: unitOverlays = (() => {
 		if (!highlightedSquares) return [];
 
-		return highlightedSquares
-			.filter((h) => h.unit)
-			.map((h) => ({
-				...h.unit!,
-				highlightType: h.highlightType,
-			}));
+		const overlays = [];
+
+		for (const h of highlightedSquares) {
+			// Handle single unit
+			if (h.unit) {
+				overlays.push({
+					...h.unit,
+					highlightType: h.highlightType,
+				});
+			}
+
+			// Handle multiple units (for X-Wing and similar techniques)
+			if (h.units) {
+				for (const unit of h.units) {
+					overlays.push({
+						...unit,
+						highlightType: h.highlightType,
+					});
+				}
+			}
+		}
+
+		return overlays;
 	})();
 
 	// Compute individual cell overlays for specific cell highlighting
@@ -169,7 +223,7 @@
 		const overlays: {
 			row: number;
 			col: number;
-			highlightType: 'primary' | 'secondary' | 'elimination';
+			highlightType: 'primary' | 'secondary' | 'elimination' | 'coloring';
 		}[] = [];
 
 		for (const highlight of highlightedSquares) {
@@ -247,6 +301,9 @@
 						{highlightedNumber}
 						{colorKuMode}
 						eliminationCandidates={cellHighlights.candidateEliminations[
+							`${i}-${j}`
+						]}
+						candidateHighlights={cellHighlights.candidateHighlights[
 							`${i}-${j}`
 						]}
 					/>

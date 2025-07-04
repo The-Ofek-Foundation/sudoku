@@ -14,8 +14,14 @@
 	export let onHighlight: (data: {
 		squares?: string[];
 		unit?: { type: 'row' | 'column' | 'box'; index: number };
+		units?: { type: 'row' | 'column' | 'box'; index: number }[];
 		candidateEliminations?: { square: string; digits: string[] }[];
-		highlightType: 'primary' | 'secondary' | 'elimination';
+		candidateHighlights?: {
+			square: string;
+			digit: string;
+			color: 'on' | 'off';
+		}[];
+		highlightType: 'primary' | 'secondary' | 'elimination' | 'coloring';
 	}) => void;
 	export let onClearHighlights: () => void;
 	export let onApplyHint: () => void;
@@ -89,6 +95,10 @@
 			hidden_quads: 'Hidden Quads',
 			pointing_pairs: 'Pointing Pairs',
 			box_line_reduction: 'Box/Line Reduction',
+			x_wing: 'X-Wing',
+			chute_remote_pairs: 'Chute Remote Pairs',
+			simple_coloring: 'Simple Coloring',
+			y_wing: 'Y-Wing',
 		};
 		return names[technique] || technique;
 	}
@@ -264,6 +274,80 @@
 			} else {
 				onHighlight({ squares: hint.squares, highlightType: 'primary' });
 			}
+		} else if (hint.type === 'x_wing') {
+			// For X-Wing, highlight the primary units (where the pattern occurs) as secondary
+			// and the X-Wing squares as primary
+			if (hint.primaryUnits && hint.primaryUnits.length === 2) {
+				const unitsMeta = hint.primaryUnits
+					.map((unit) => getUnitMetadata(unit))
+					.filter((meta) => meta !== null);
+				if (unitsMeta.length === 2) {
+					onHighlight({ units: unitsMeta, highlightType: 'secondary' });
+				} else {
+					// Fallback to individual squares if we can't get unit metadata
+					for (const unit of hint.primaryUnits) {
+						onHighlight({ squares: unit, highlightType: 'secondary' });
+					}
+				}
+			}
+			onHighlight({ squares: hint.squares, highlightType: 'primary' });
+		} else if (hint.type === 'chute_remote_pairs') {
+			// For Chute Remote Pairs, highlight the remote pair cells as primary
+			// and the relevant rows/columns that form the chute as secondary
+			onHighlight({
+				squares: hint.remotePairSquares,
+				highlightType: 'primary',
+			});
+
+			// Highlight the chute context (rows or columns)
+			if (hint.chuteType === 'horizontal') {
+				// For horizontal chute, highlight the row(s) containing the remote pair cells
+				const rows = hint.remotePairSquares.map((square) => ({
+					type: 'row' as const,
+					index: square.charCodeAt(0) - 'A'.charCodeAt(0),
+				}));
+				onHighlight({ units: rows, highlightType: 'secondary' });
+			} else {
+				// For vertical chute, highlight the column(s) containing the remote pair cells
+				const columns = hint.remotePairSquares.map((square) => ({
+					type: 'column' as const,
+					index: parseInt(square.charAt(1)) - 1,
+				}));
+				onHighlight({ units: columns, highlightType: 'secondary' });
+			}
+		} else if (hint.type === 'simple_coloring') {
+			// For Simple Coloring, highlight the candidates with colors instead of cells
+			const candidateHighlights = hint.chain.map((square) => ({
+				square,
+				digit: hint.digit,
+				color: (hint.chainColors[square] === 'color1' ? 'on' : 'off') as
+					| 'on'
+					| 'off',
+			}));
+			onHighlight({ candidateHighlights, highlightType: 'coloring' });
+
+			// Also highlight the chain cells as primary for visual feedback until candidate highlighting is implemented
+			onHighlight({ squares: hint.chain, highlightType: 'primary' });
+
+			// For Rule 2, also highlight the conflicting unit
+			if (hint.rule === 'rule_2' && hint.conflictUnit) {
+				const unitMeta = getUnitMetadata(hint.conflictUnit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					onHighlight({
+						squares: hint.conflictUnit,
+						highlightType: 'secondary',
+					});
+				}
+			}
+		} else if (hint.type === 'y_wing') {
+			// Highlight the Y-Wing pattern
+			onHighlight({
+				squares: [hint.pivotCell, hint.pincer1Cell, hint.pincer2Cell],
+				highlightType: 'primary',
+			});
+			// Note: Do NOT highlight elimination candidates here - only in showSolution (stage 3)
 		}
 	}
 
@@ -393,6 +477,121 @@
 				}));
 				onHighlight({ candidateEliminations, highlightType: 'elimination' });
 			}
+		} else if (hint.type === 'x_wing') {
+			// For X-Wing stage 3, show all units involved and elimination cells
+			const allUnits = [];
+
+			// Collect primary units (the rows/columns with the X-Wing pattern)
+			if (hint.primaryUnits && hint.primaryUnits.length === 2) {
+				const primaryUnitsMeta = hint.primaryUnits
+					.map((unit) => getUnitMetadata(unit))
+					.filter((meta) => meta !== null);
+				allUnits.push(...primaryUnitsMeta);
+			}
+
+			// Collect secondary units (the perpendicular rows/columns where eliminations occur)
+			if (hint.secondaryUnits && hint.secondaryUnits.length === 2) {
+				const secondaryUnitsMeta = hint.secondaryUnits
+					.map((unit) => getUnitMetadata(unit))
+					.filter((meta) => meta !== null);
+				allUnits.push(...secondaryUnitsMeta);
+			}
+
+			// Highlight all units at once if we have metadata, otherwise fall back to individual squares
+			if (allUnits.length > 0) {
+				onHighlight({ units: allUnits, highlightType: 'secondary' });
+			} else {
+				// Fallback to individual squares
+				if (hint.primaryUnits) {
+					for (const unit of hint.primaryUnits) {
+						onHighlight({ squares: unit, highlightType: 'secondary' });
+					}
+				}
+				if (hint.secondaryUnits) {
+					for (const unit of hint.secondaryUnits) {
+						onHighlight({ squares: unit, highlightType: 'secondary' });
+					}
+				}
+			}
+
+			onHighlight({ squares: hint.squares, highlightType: 'primary' });
+			if (hint.eliminationCells.length > 0) {
+				// For X-Wing, create candidate eliminations with the specific digit
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: [hint.digit],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
+			}
+		} else if (hint.type === 'chute_remote_pairs') {
+			// For Chute Remote Pairs stage 3, show remote pair cells and elimination cells
+			onHighlight({
+				squares: hint.remotePairSquares,
+				highlightType: 'primary',
+			});
+			onHighlight({
+				squares: hint.thirdBoxSquares,
+				highlightType: 'secondary',
+			});
+			if (hint.eliminationCells.length > 0) {
+				// Create candidate eliminations with the absent digit
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: [hint.absentDigit],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
+			}
+		} else if (hint.type === 'simple_coloring') {
+			// For Simple Coloring stage 3, show the candidate colors and elimination cells
+			const candidateHighlights = hint.chain.map((square) => ({
+				square,
+				digit: hint.digit,
+				color: (hint.chainColors[square] === 'color1' ? 'on' : 'off') as
+					| 'on'
+					| 'off',
+			}));
+			onHighlight({ candidateHighlights, highlightType: 'coloring' });
+
+			// Also highlight the chain cells as primary for visual feedback until candidate highlighting is implemented
+			onHighlight({ squares: hint.chain, highlightType: 'primary' });
+
+			// For Rule 2, also highlight the conflicting unit
+			if (hint.rule === 'rule_2' && hint.conflictUnit) {
+				const unitMeta = getUnitMetadata(hint.conflictUnit);
+				if (unitMeta) {
+					onHighlight({ unit: unitMeta, highlightType: 'secondary' });
+				} else {
+					onHighlight({
+						squares: hint.conflictUnit,
+						highlightType: 'secondary',
+					});
+				}
+			}
+
+			if (hint.eliminationCells.length > 0) {
+				// Create candidate eliminations with the specific digit
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: [hint.digit],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
+			}
+		} else if (hint.type === 'y_wing') {
+			// For Y-Wing stage 3, show pivot and pincer cells, then elimination cells
+			onHighlight({ squares: [hint.pivotCell], highlightType: 'primary' });
+			onHighlight({
+				squares: [hint.pincer1Cell, hint.pincer2Cell],
+				highlightType: 'secondary',
+			});
+
+			if (hint.eliminationCells.length > 0) {
+				// Create candidate eliminations with candidateC
+				const candidateEliminations = hint.eliminationCells.map((cell) => ({
+					square: cell,
+					digits: [hint.candidateC],
+				}));
+				onHighlight({ candidateEliminations, highlightType: 'elimination' });
+			}
 		}
 	}
 
@@ -433,6 +632,18 @@
 					} else {
 						return `There exists a ${getDigitWord()} in a ${hint.primaryUnitType} which appears in only one box. It must exist in that ${hint.primaryUnitType}, so it can be eliminated from other cells in that box.`;
 					}
+
+				case 'x_wing':
+					return `An X-Wing occurs when a ${getDigitWord()} appears in exactly two positions in each of two parallel ${hint.primaryUnitType}s, and these positions are aligned in the perpendicular direction. This forms a rectangular pattern that eliminates candidates.`;
+
+				case 'chute_remote_pairs':
+					return `A Chute Remote Pair occurs when two bi-value cells with identical candidates exist in the same chute (3 boxes in a row or column) but cannot see each other. If only one of the candidates appears in the third box, eliminations can be made.`;
+
+				case 'simple_coloring':
+					return `Simple Coloring creates chains of bi-location links for a single ${getDigitWord()}, where each link connects exactly two positions for that ${getDigitWord()} in a row, column, or box. By assigning alternating colors to linked cells, contradictions can be found that eliminate candidates.`;
+
+				case 'y_wing':
+					return `A Y-Wing is formed by three bi-value cells arranged in a Y pattern. The pivot cell can "see" both pincer cells, and together they share exactly three candidates. This pattern forces one candidate into specific positions, enabling eliminations.`;
 			}
 		} else if (currentStage === 2) {
 			// Stage 2: Show where the technique applies with more context
@@ -463,6 +674,26 @@
 					} else {
 						return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} in the highlighted ${hint.primaryUnitType} is restricted to only one box. It must appear in that ${hint.primaryUnitType} and not in any other cells in that box.`;
 					}
+
+				case 'x_wing':
+					return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} appears in exactly two positions in each of the highlighted ${hint.primaryUnitType}s. These positions form a rectangle at cells ${formatSquares(hint.squares)}, which creates the X-Wing pattern.`;
+
+				case 'chute_remote_pairs':
+					const chuteDescription =
+						hint.chuteType === 'horizontal'
+							? 'row of boxes'
+							: 'column of boxes';
+					return `Cells ${formatSquares(hint.remotePairSquares)} both contain the same candidates ${formatDigits(hint.digits)} and are in the same ${chuteDescription}. ${getDigitWordCapitalized()} ${formatDigit(hint.presentDigit)} appears in the third box, but ${formatDigit(hint.absentDigit)} does not.`;
+
+				case 'simple_coloring':
+					const ruleDescription =
+						hint.rule === 'rule_2'
+							? `Two cells of the same color appear in the same ${hint.conflictUnitType}`
+							: `A cell can see both colors of the chain`;
+					return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} forms a chain of ${hint.chain.length} linked cells. ${ruleDescription}, creating a contradiction that eliminates candidates.`;
+
+				case 'y_wing':
+					return `Cells ${formatSquare(hint.pivotCell)} (${formatDigits([hint.candidateA, hint.candidateB])}), ${formatSquare(hint.pincer1Cell)} (${formatDigits([hint.candidateA, hint.candidateC])}), and ${formatSquare(hint.pincer2Cell)} (${formatDigits([hint.candidateB, hint.candidateC])}) form a Y-Wing pattern. Since ${formatSquare(hint.pivotCell)} must be either ${formatDigit(hint.candidateA)} or ${formatDigit(hint.candidateB)}, candidate ${formatDigit(hint.candidateC)} must appear in one of the pincer cells.`;
 			}
 		} else {
 			// Stage 3: Show the full technical description with the action
@@ -492,6 +723,22 @@
 					} else {
 						return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} must appear in either cell ${formatSquares(hint.squares)} in the highlighted box. In either case, cells ${formatSquares(hint.eliminationCells)} in the same box cannot contain a ${formatDigit(hint.digit)}.`;
 					}
+
+				case 'x_wing':
+					return `${getDigitWordCapitalized()} ${formatDigit(hint.digit)} forms an X-Wing pattern at cells ${formatSquares(hint.squares)}. No matter how the ${getDigitWordPlural()} are placed within this rectangle, cells ${formatSquares(hint.eliminationCells)} in the affected ${hint.secondaryUnitType}s cannot contain a ${formatDigit(hint.digit)}.`;
+
+				case 'chute_remote_pairs':
+					return `Since ${formatDigit(hint.absentDigit)} cannot be placed anywhere in the third box of the chute, and the remote pair cells ${formatSquares(hint.remotePairSquares)} contain both ${formatDigits(hint.digits)}, ${formatDigit(hint.absentDigit)} can be eliminated from cells ${formatSquares(hint.eliminationCells)} that can see both remote pair cells.`;
+
+				case 'simple_coloring':
+					if (hint.rule === 'rule_2') {
+						return `Two cells in the chain have the same color in the same ${hint.conflictUnitType}, which is impossible. All cells with that color must be false, so ${formatDigit(hint.digit)} can be eliminated from cells ${formatSquares(hint.eliminationCells)}.`;
+					} else {
+						return `Cell ${formatSquare(hint.witnessCell || '')} can see both colors of the chain, meaning ${formatDigit(hint.digit)} would conflict no matter which color is true. Therefore, ${formatDigit(hint.digit)} can be eliminated from cell ${formatSquare(hint.witnessCell || '')}.`;
+					}
+
+				case 'y_wing':
+					return `The Y-Wing forces candidate ${formatDigit(hint.candidateC)} into one of the pincer cells ${formatSquare(hint.pincer1Cell)} or ${formatSquare(hint.pincer2Cell)}. Any cell that can see both pincers cannot contain ${formatDigit(hint.candidateC)}. Therefore, eliminate ${formatDigit(hint.candidateC)} from cells ${formatSquares(hint.eliminationCells)}.`;
 			}
 		}
 		return '';
@@ -602,6 +849,62 @@
 						<div class="action-item">
 							<span class="action-type remove">🗑️ Remove candidate:</span>
 							<span class="action-value">{@html formatDigit(hint.digit)}</span>
+						</div>
+						<div class="action-item">
+							<span class="action-type from">📍 From cells:</span>
+							<span class="action-value"
+								>{formatSquares(hint.eliminationCells)}</span
+							>
+						</div>
+					{/if}
+				{:else if hint.type === 'x_wing'}
+					{#if hint.eliminationCells.length > 0}
+						<div class="action-item">
+							<span class="action-type remove">🗑️ Remove candidate:</span>
+							<span class="action-value">{@html formatDigit(hint.digit)}</span>
+						</div>
+						<div class="action-item">
+							<span class="action-type from">📍 From cells:</span>
+							<span class="action-value"
+								>{formatSquares(hint.eliminationCells)}</span
+							>
+						</div>
+					{/if}
+				{:else if hint.type === 'chute_remote_pairs'}
+					{#if hint.eliminationCells.length > 0}
+						<div class="action-item">
+							<span class="action-type remove">🗑️ Remove candidate:</span>
+							<span class="action-value"
+								>{@html formatDigit(hint.absentDigit)}</span
+							>
+						</div>
+						<div class="action-item">
+							<span class="action-type from">📍 From cells:</span>
+							<span class="action-value"
+								>{formatSquares(hint.eliminationCells)}</span
+							>
+						</div>
+					{/if}
+				{:else if hint.type === 'simple_coloring'}
+					{#if hint.eliminationCells.length > 0}
+						<div class="action-item">
+							<span class="action-type remove">🗑️ Remove candidate:</span>
+							<span class="action-value">{@html formatDigit(hint.digit)}</span>
+						</div>
+						<div class="action-item">
+							<span class="action-type from">📍 From cells:</span>
+							<span class="action-value"
+								>{formatSquares(hint.eliminationCells)}</span
+							>
+						</div>
+					{/if}
+				{:else if hint.type === 'y_wing'}
+					{#if hint.eliminationCells.length > 0}
+						<div class="action-item">
+							<span class="action-type remove">🗑️ Remove candidate:</span>
+							<span class="action-value"
+								>{@html formatDigit(hint.candidateC)}</span
+							>
 						</div>
 						<div class="action-item">
 							<span class="action-type from">📍 From cells:</span>
