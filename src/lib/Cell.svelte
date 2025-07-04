@@ -7,9 +7,6 @@
 	export let gamePhase: GamePhase = 'configuring';
 	export let highlightedNumber: number | null = null;
 	export let colorKuMode: boolean = false;
-	export let hintHighlight: Array<
-		'primary' | 'secondary' | 'elimination'
-	> | null = null;
 	export let eliminationCandidates: string[] = []; // Specific candidates to highlight for elimination
 
 	function getColorForNumber(num: number): string {
@@ -29,13 +26,7 @@
 	}
 </script>
 
-<div
-	class="cell"
-	class:hint-primary={hintHighlight && hintHighlight.includes('primary')}
-	class:hint-secondary={hintHighlight && hintHighlight.includes('secondary')}
-	class:hint-elimination={hintHighlight &&
-		hintHighlight.includes('elimination')}
->
+<div class="cell">
 	{#if value}
 		{#if colorKuMode}
 			<div
@@ -247,96 +238,6 @@
 		50% {
 			background: rgba(255, 152, 0, 0.35);
 			transform: scale(1.05);
-		}
-	}
-
-	/* Hint highlighting styles */
-	.cell.hint-primary {
-		background: var(--gradient-highlight);
-		border: 2px solid var(--color-primary);
-		box-shadow: var(--shadow-hint-primary);
-		animation: hintPulse 2s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	.cell.hint-secondary {
-		background: var(--gradient-note);
-		border: 2px solid var(--color-note-border);
-		box-shadow: var(--shadow-hint-secondary);
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	.cell.hint-elimination {
-		background: var(--gradient-elimination);
-		border: 2px solid var(--color-elimination-border);
-		box-shadow: var(--shadow-hint-elimination);
-		animation: eliminationPulse 1.5s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	/* Combinations for multiple highlight types */
-	.cell.hint-primary.hint-secondary {
-		background: var(--gradient-highlight-note);
-		border: 2px solid var(--color-note-text); /* Blend of primary and secondary colors */
-		box-shadow: var(--shadow-hint-primary), var(--shadow-hint-secondary);
-		animation: hintPulse 2s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	.cell.hint-primary.hint-elimination {
-		background: var(--gradient-highlight-elimination);
-		border: 2px solid var(--color-elimination-text); /* Blend of primary and elimination colors */
-		box-shadow: var(--shadow-hint-primary), var(--shadow-hint-elimination);
-		animation:
-			hintPulse 2s ease-in-out infinite,
-			eliminationPulse 1.5s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	.cell.hint-secondary.hint-elimination {
-		background: var(--gradient-note-elimination);
-		border: 2px solid #ff6f00; /* Blend of secondary and elimination colors */
-		box-shadow: var(--shadow-hint-secondary), var(--shadow-hint-elimination);
-		animation: eliminationPulse 1.5s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	.cell.hint-primary.hint-secondary.hint-elimination {
-		background: var(--gradient-all-hints);
-		border: 2px solid #e65100; /* Blend of all three colors */
-		box-shadow:
-			var(--shadow-hint-primary), var(--shadow-hint-secondary),
-			var(--shadow-hint-elimination);
-		animation:
-			hintPulse 2s ease-in-out infinite,
-			eliminationPulse 1.5s ease-in-out infinite;
-		position: relative;
-		z-index: 2; /* Above unit overlays */
-	}
-
-	@keyframes hintPulse {
-		0%,
-		100% {
-			box-shadow: var(--shadow-hint-primary);
-		}
-		50% {
-			box-shadow: var(--shadow-hint-primary-strong);
-		}
-	}
-
-	@keyframes eliminationPulse {
-		0%,
-		100% {
-			box-shadow: var(--shadow-hint-elimination);
-		}
-		50% {
-			box-shadow: var(--shadow-hint-elimination-strong);
 		}
 	}
 </style>

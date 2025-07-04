@@ -23,27 +23,21 @@
 		  }[]
 		| null = null;
 	export let showingHint: boolean = false; // New prop to indicate if hint is showing
-
-	// Pre-compute all cell highlights and candidate eliminations reactively
+	// Pre-compute candidate eliminations reactively
 	$: cellHighlights = (() => {
 		// Force reactivity - accessing highlightedSquares ensures this runs when it changes
 		if (highlightedSquares) {
 			/* dependency tracking */
 		}
-		const highlights: Record<
-			string,
-			Array<'primary' | 'secondary' | 'elimination'>
-		> = {};
 		const candidateEliminations: Record<string, string[]> = {};
 
 		for (let i = 0; i < 9; i++) {
 			for (let j = 0; j < 9; j++) {
 				const key = `${i}-${j}`;
-				highlights[key] = getCellHighlightTypes(i, j);
 				candidateEliminations[key] = getCellCandidateEliminations(i, j);
 			}
 		}
-		return { highlights, candidateEliminations };
+		return { candidateEliminations };
 	})();
 
 	let gridContainer: HTMLElement;
@@ -51,47 +45,6 @@
 	function selectCell(row: number, col: number) {
 		selectedCell = { row, col };
 		onCellSelected({ row, col });
-	}
-
-	// Helper function to get highlight types for a cell (can be multiple)
-	function getCellHighlightTypes(
-		row: number,
-		col: number,
-	): Array<'primary' | 'secondary' | 'elimination'> {
-		if (!highlightedSquares) return [];
-
-		const square = coordinatesToSquare(row, col);
-		const types: Array<'primary' | 'secondary' | 'elimination'> = [];
-
-		for (const highlight of highlightedSquares) {
-			// Check if this cell is directly highlighted via squares array
-			if (highlight.squares && highlight.squares.includes(square)) {
-				types.push(highlight.highlightType);
-			}
-			// Check if this cell is part of a highlighted unit
-			else if (highlight.unit) {
-				const { type, index } = highlight.unit;
-				let isInUnit = false;
-
-				if (type === 'row' && row === index) {
-					isInUnit = true;
-				} else if (type === 'column' && col === index) {
-					isInUnit = true;
-				} else if (type === 'box') {
-					const boxRow = Math.floor(index / 3);
-					const boxCol = index % 3;
-					const cellBoxRow = Math.floor(row / 3);
-					const cellBoxCol = Math.floor(col / 3);
-					isInUnit = boxRow === cellBoxRow && boxCol === cellBoxCol;
-				}
-
-				if (isInUnit) {
-					types.push(highlight.highlightType);
-				}
-			}
-		}
-
-		return types;
 	}
 
 	// Helper function to get candidate eliminations for a cell
@@ -209,6 +162,34 @@
 			}));
 	})();
 
+	// Compute individual cell overlays for specific cell highlighting
+	$: cellOverlays = (() => {
+		if (!highlightedSquares) return [];
+
+		const overlays: {
+			row: number;
+			col: number;
+			highlightType: 'primary' | 'secondary' | 'elimination';
+		}[] = [];
+
+		for (const highlight of highlightedSquares) {
+			if (highlight.squares) {
+				for (const square of highlight.squares) {
+					// Convert square notation (like "A1") to row/col coordinates
+					const row = square.charCodeAt(0) - 'A'.charCodeAt(0);
+					const col = parseInt(square[1]) - 1;
+					overlays.push({
+						row,
+						col,
+						highlightType: highlight.highlightType,
+					});
+				}
+			}
+		}
+
+		return overlays;
+	})();
+
 	// Function to get CSS positioning for unit overlays
 	function getUnitOverlayStyle(overlay: {
 		type: 'row' | 'column' | 'box';
@@ -233,6 +214,15 @@
 			return `top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;`;
 		}
 	}
+
+	// Function to get CSS positioning for individual cell overlays
+	function getCellOverlayStyle(overlay: { row: number; col: number }): string {
+		const top = (overlay.row / 9) * 100;
+		const left = (overlay.col / 9) * 100;
+		const width = 100 / 9;
+		const height = 100 / 9;
+		return `top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;`;
+	}
 </script>
 
 <div class="grid-container" bind:this={gridContainer}>
@@ -256,7 +246,6 @@
 						{gamePhase}
 						{highlightedNumber}
 						{colorKuMode}
-						hintHighlight={cellHighlights.highlights[`${i}-${j}`]}
 						eliminationCandidates={cellHighlights.candidateEliminations[
 							`${i}-${j}`
 						]}
@@ -270,6 +259,14 @@
 			<div
 				class="unit-overlay unit-{overlay.type} unit-highlight-{overlay.highlightType}"
 				style={getUnitOverlayStyle(overlay)}
+			></div>
+		{/each}
+
+		<!-- Individual cell highlighting overlays -->
+		{#each cellOverlays as overlay}
+			<div
+				class="cell-overlay cell-highlight-{overlay.highlightType}"
+				style={getCellOverlayStyle(overlay)}
 			></div>
 		{/each}
 	</div>
@@ -349,37 +346,56 @@
 		box-sizing: border-box;
 	}
 
+	/* Individual cell overlay styles */
+	.cell-overlay {
+		position: absolute;
+		pointer-events: none; /* Allow clicks to pass through */
+		border-radius: var(--radius-xs);
+		z-index: 2; /* Above unit overlays */
+		transition: all var(--transition-fast);
+		box-sizing: border-box;
+	}
+
 	/* Unit highlight styles based on type - more transparent */
 	.unit-highlight-primary {
-		background: linear-gradient(
-			135deg,
-			rgba(33, 150, 243, 0.15),
-			rgba(33, 150, 243, 0.25)
-		);
-		border: 2px solid rgba(33, 150, 243, 0.6);
-		box-shadow: 0 0 8px rgba(33, 150, 243, 0.3);
+		background: var(--gradient-overlay-unit-primary);
+		border: 2px solid var(--color-overlay-border-primary);
+		box-shadow: var(--shadow-overlay-unit-primary);
 		animation: unitHintPulse 2s ease-in-out infinite;
 	}
 
 	.unit-highlight-secondary {
-		background: linear-gradient(
-			135deg,
-			rgba(156, 39, 176, 0.12),
-			rgba(156, 39, 176, 0.2)
-		);
-		border: 2px solid rgba(156, 39, 176, 0.5);
-		box-shadow: 0 0 8px rgba(156, 39, 176, 0.25);
+		background: var(--gradient-overlay-unit-secondary);
+		border: 2px solid var(--color-overlay-border-secondary);
+		box-shadow: var(--shadow-overlay-unit-secondary);
 	}
 
 	.unit-highlight-elimination {
-		background: linear-gradient(
-			135deg,
-			rgba(255, 152, 0, 0.15),
-			rgba(255, 152, 0, 0.25)
-		);
-		border: 2px solid rgba(255, 152, 0, 0.6);
-		box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+		background: var(--gradient-overlay-unit-elimination);
+		border: 2px solid var(--color-overlay-border-elimination);
+		box-shadow: var(--shadow-overlay-unit-elimination);
 		animation: unitEliminationPulse 1.5s ease-in-out infinite;
+	}
+
+	/* Individual cell highlight styles */
+	.cell-highlight-primary {
+		background: var(--gradient-overlay-cell-primary);
+		border: 2px solid var(--color-overlay-border-primary-strong);
+		box-shadow: var(--shadow-overlay-cell-primary);
+		animation: cellHintPulse 2s ease-in-out infinite;
+	}
+
+	.cell-highlight-secondary {
+		background: var(--gradient-overlay-cell-secondary);
+		border: 2px solid var(--color-overlay-border-secondary-strong);
+		box-shadow: var(--shadow-overlay-cell-secondary);
+	}
+
+	.cell-highlight-elimination {
+		background: var(--gradient-overlay-cell-elimination);
+		border: 2px solid var(--color-overlay-border-elimination-strong);
+		box-shadow: var(--shadow-overlay-cell-elimination);
+		animation: cellEliminationPulse 1.5s ease-in-out infinite;
 	}
 
 	/* Special styles for different unit types */
@@ -399,11 +415,11 @@
 	@keyframes unitHintPulse {
 		0%,
 		100% {
-			box-shadow: 0 0 8px rgba(33, 150, 243, 0.3);
+			box-shadow: var(--shadow-overlay-unit-primary);
 			opacity: 0.7;
 		}
 		50% {
-			box-shadow: 0 0 16px rgba(33, 150, 243, 0.5);
+			box-shadow: var(--shadow-overlay-unit-primary-strong);
 			opacity: 0.9;
 		}
 	}
@@ -411,12 +427,32 @@
 	@keyframes unitEliminationPulse {
 		0%,
 		100% {
-			box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+			box-shadow: var(--shadow-overlay-unit-elimination);
 			opacity: 0.7;
 		}
 		50% {
-			box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
+			box-shadow: var(--shadow-overlay-unit-elimination-strong);
 			opacity: 0.9;
+		}
+	}
+
+	@keyframes cellHintPulse {
+		0%,
+		100% {
+			box-shadow: var(--shadow-overlay-cell-primary);
+		}
+		50% {
+			box-shadow: var(--shadow-overlay-cell-primary-strong);
+		}
+	}
+
+	@keyframes cellEliminationPulse {
+		0%,
+		100% {
+			box-shadow: var(--shadow-overlay-cell-elimination);
+		}
+		50% {
+			box-shadow: var(--shadow-overlay-cell-elimination-strong);
 		}
 	}
 </style>

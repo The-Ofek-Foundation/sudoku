@@ -114,6 +114,14 @@
 	--color-elimination-border: var(--orange-600);
 	--color-elimination-text: var(--orange-800);
 
+	/* Overlay border colors for semi-transparent highlighting */
+	--color-overlay-border-primary: rgba(33, 150, 243, 0.6);
+	--color-overlay-border-primary-strong: rgba(33, 150, 243, 0.8);
+	--color-overlay-border-secondary: rgba(156, 39, 176, 0.5);
+	--color-overlay-border-secondary-strong: rgba(156, 39, 176, 0.7);
+	--color-overlay-border-elimination: rgba(255, 152, 0, 0.6);
+	--color-overlay-border-elimination-strong: rgba(255, 152, 0, 0.8);
+
 	/* ========================================
 	   LEGACY COMPATIBILITY LAYER
 	   ======================================== */
@@ -240,6 +248,38 @@
 		var(--orange-100) 100%
 	);
 
+	/* Overlay-specific gradients for semi-transparent highlighting */
+	--gradient-overlay-unit-primary: linear-gradient(
+		135deg,
+		rgba(33, 150, 243, 0.15),
+		rgba(33, 150, 243, 0.25)
+	);
+	--gradient-overlay-unit-secondary: linear-gradient(
+		135deg,
+		rgba(156, 39, 176, 0.12),
+		rgba(156, 39, 176, 0.2)
+	);
+	--gradient-overlay-unit-elimination: linear-gradient(
+		135deg,
+		rgba(255, 152, 0, 0.15),
+		rgba(255, 152, 0, 0.25)
+	);
+	--gradient-overlay-cell-primary: linear-gradient(
+		135deg,
+		rgba(33, 150, 243, 0.2),
+		rgba(33, 150, 243, 0.3)
+	);
+	--gradient-overlay-cell-secondary: linear-gradient(
+		135deg,
+		rgba(156, 39, 176, 0.15),
+		rgba(156, 39, 176, 0.25)
+	);
+	--gradient-overlay-cell-elimination: linear-gradient(
+		135deg,
+		rgba(255, 152, 0, 0.2),
+		rgba(255, 152, 0, 0.3)
+	);
+
 	/* ========================================
 	   SHADOWS - Systematic with alpha functions
 	   ======================================== */
@@ -260,6 +300,18 @@
 	--shadow-hint-secondary: 0 0 8px rgba(156, 39, 176, 0.4);
 	--shadow-hint-elimination: 0 0 8px rgba(255, 152, 0, 0.4);
 	--shadow-hint-elimination-strong: 0 0 12px rgba(255, 152, 0, 0.7);
+
+	/* Overlay-specific shadows for unit and cell highlighting */
+	--shadow-overlay-unit-primary: 0 0 8px rgba(33, 150, 243, 0.3);
+	--shadow-overlay-unit-primary-strong: 0 0 16px rgba(33, 150, 243, 0.5);
+	--shadow-overlay-unit-secondary: 0 0 8px rgba(156, 39, 176, 0.25);
+	--shadow-overlay-unit-elimination: 0 0 8px rgba(255, 152, 0, 0.3);
+	--shadow-overlay-unit-elimination-strong: 0 0 12px rgba(255, 152, 0, 0.5);
+	--shadow-overlay-cell-primary: 0 0 8px rgba(33, 150, 243, 0.4);
+	--shadow-overlay-cell-primary-strong: 0 0 16px rgba(33, 150, 243, 0.7);
+	--shadow-overlay-cell-secondary: 0 0 8px rgba(156, 39, 176, 0.3);
+	--shadow-overlay-cell-elimination: 0 0 8px rgba(255, 152, 0, 0.4);
+	--shadow-overlay-cell-elimination-strong: 0 0 12px rgba(255, 152, 0, 0.7);
 
 	/* ========================================
 	   DESIGN TOKENS - Organized by function
