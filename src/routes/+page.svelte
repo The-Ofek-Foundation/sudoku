@@ -42,6 +42,11 @@
 		getInitialPuzzle,
 		getCellsWithSameNumber,
 		isCorrectPlacement,
+		forEachCell,
+		setCellValue,
+		setCellCandidates,
+		isEmpty,
+		isFilled,
 		type SimpleValidationResult,
 	} from '$lib/utils/boardUtils.js';
 	import { gamePhaseManager, type GamePhaseContext } from '$lib/gamePhases';
@@ -290,21 +295,24 @@
 	function initializeBoardForGamePhase(
 		gameMode: 'solving' | 'manual' | 'competition',
 	) {
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				if (board[i][j].value !== null) {
-					board[i][j].isInitial = true;
+		forEachCell(board, (cell, row, col) => {
+			if (cell.value !== null) {
+				cell.isInitial = true;
+			} else {
+				if (gameMode === 'manual') {
+					// In manual mode, start with all numbers available as candidates
+					setCellCandidates(board, row, col, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 				} else {
-					if (gameMode === 'manual') {
-						// In manual mode, start with all numbers available as candidates
-						board[i][j].candidates = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-					} else {
-						// In solving and competition modes, calculate valid candidates
-						board[i][j].candidates = getPossibleNumbers(board, i, j);
-					}
+					// In solving and competition modes, calculate valid candidates
+					setCellCandidates(
+						board,
+						row,
+						col,
+						getPossibleNumbers(board, row, col),
+					);
 				}
 			}
-		}
+		});
 		saveToHistory();
 	}
 
@@ -374,14 +382,12 @@
 		const rows = 'ABCDEFGHI';
 		const cols = '123456789';
 
-		for (let i = 0; i < 9; i++) {
-			for (let j = 0; j < 9; j++) {
-				const square = rows[i] + cols[j];
-				if (generatedPuzzle[square]) {
-					board[i][j].value = parseInt(generatedPuzzle[square]);
-				}
+		forEachCell(board, (cell, row, col) => {
+			const square = rows[row] + cols[col];
+			if (generatedPuzzle[square]) {
+				setCellValue(board, row, col, parseInt(generatedPuzzle[square]));
 			}
-		}
+		});
 
 		// Trigger reactivity
 		board = board;

@@ -21,12 +21,168 @@ export interface SimpleValidationResult {
 }
 
 /**
+ * Callback type for board traversal functions
+ */
+export type CellCallback<T = void> = (
+	cell: CellData,
+	row: number,
+	col: number,
+	board: CellData[][]
+) => T;
+
+/**
+ * Predicate type for filtering cells
+ */
+export type CellPredicate = (
+	cell: CellData,
+	row: number,
+	col: number,
+	board: CellData[][]
+) => boolean;
+
+// ==================== BOARD TRAVERSAL UTILITIES ====================
+
+/**
+ * Traverse all cells in the board and execute a callback for each
+ */
+export function forEachCell(
+	board: CellData[][],
+	callback: CellCallback
+): void {
+	for (let row = 0; row < 9; row++) {
+		for (let col = 0; col < 9; col++) {
+			callback(board[row][col], row, col, board);
+		}
+	}
+}
+
+/**
+ * Find all cells that match a predicate
+ */
+export function findCells(
+	board: CellData[][],
+	predicate: CellPredicate
+): { cell: CellData; row: number; col: number }[] {
+	const matchingCells: { cell: CellData; row: number; col: number }[] = [];
+	
+	forEachCell(board, (cell, row, col) => {
+		if (predicate(cell, row, col, board)) {
+			matchingCells.push({ cell, row, col });
+		}
+	});
+	
+	return matchingCells;
+}
+
+/**
+ * Count cells that match a predicate
+ */
+export function countCells(
+	board: CellData[][],
+	predicate: CellPredicate
+): number {
+	let count = 0;
+	forEachCell(board, (cell, row, col) => {
+		if (predicate(cell, row, col, board)) {
+			count++;
+		}
+	});
+	return count;
+}
+
+/**
+ * Check if all cells match a predicate
+ */
+export function allCells(
+	board: CellData[][],
+	predicate: CellPredicate
+): boolean {
+	for (let row = 0; row < 9; row++) {
+		for (let col = 0; col < 9; col++) {
+			if (!predicate(board[row][col], row, col, board)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Map each cell to a new value
+ */
+export function mapCells<T>(
+	board: CellData[][],
+	mapper: CellCallback<T>
+): T[][] {
+	const result: T[][] = [];
+	for (let row = 0; row < 9; row++) {
+		result[row] = [];
+		for (let col = 0; col < 9; col++) {
+			result[row][col] = mapper(board[row][col], row, col, board);
+		}
+	}
+	return result;
+}
+
+// ==================== COMMON CELL PREDICATES ====================
+
+/**
+ * Predicate for empty cells (value is null)
+ */
+export const isEmpty: CellPredicate = (cell) => cell.value === null;
+
+/**
+ * Predicate for filled cells (value is not null)
+ */
+export const isFilled: CellPredicate = (cell) => cell.value !== null;
+
+/**
+ * Predicate for initial cells (clues)
+ */
+export const isInitial: CellPredicate = (cell) => cell.isInitial;
+
+/**
+ * Create a predicate for cells with a specific value
+ */
+export function hasValue(value: number): CellPredicate {
+	return (cell) => cell.value === value;
+}
+
+// ==================== BOARD MODIFICATION UTILITIES ====================
+
+/**
+ * Set cell value and mark as initial if specified
+ */
+export function setCellValue(
+	board: CellData[][],
+	row: number,
+	col: number,
+	value: number | null,
+	isInitial = false
+): void {
+	board[row][col].value = value;
+	if (isInitial) {
+		board[row][col].isInitial = true;
+	}
+}
+
+/**
+ * Set candidates for a cell
+ */
+export function setCellCandidates(
+	board: CellData[][],
+	row: number,
+	col: number,
+	candidates: Set<number> | number[]
+): void {
+	board[row][col].candidates = candidates instanceof Set ? candidates : new Set(candidates);
+}
+
+/**
  * Convert board to sudoku string format
  */
 export function boardToString(board: CellData[][]): string {
-	return board
-		.map((row) => row.map((cell) => cell.value || '.').join(''))
-		.join('');
+	return mapCells(board, (cell) => cell.value || '.').map(row => row.join('')).join('');
 }
 
 /**
@@ -164,14 +320,7 @@ export function updateCandidatesAfterPlacement(
  * Check if puzzle is complete (all cells filled)
  */
 export function isPuzzleComplete(board: CellData[][]): boolean {
-	for (let row = 0; row < 9; row++) {
-		for (let col = 0; col < 9; col++) {
-			if (board[row][col].value === null) {
-				return false;
-			}
-		}
-	}
-	return true;
+	return allCells(board, isFilled);
 }
 
 /**
@@ -202,14 +351,11 @@ export function getNumberCounts(board: CellData[][]): {
 		counts[i] = 0;
 	}
 
-	for (let row = 0; row < 9; row++) {
-		for (let col = 0; col < 9; col++) {
-			const value = board[row][col].value;
-			if (value !== null) {
-				counts[value]++;
-			}
+	forEachCell(board, (cell) => {
+		if (cell.value !== null) {
+			counts[cell.value]++;
 		}
-	}
+	});
 
 	return counts;
 }
@@ -308,17 +454,7 @@ export function getCellsWithSameNumber(
 	board: CellData[][],
 	targetNumber: number,
 ): { row: number; col: number }[] {
-	const cellsWithNumber: { row: number; col: number }[] = [];
-
-	for (let row = 0; row < 9; row++) {
-		for (let col = 0; col < 9; col++) {
-			if (board[row][col].value === targetNumber) {
-				cellsWithNumber.push({ row, col });
-			}
-		}
-	}
-
-	return cellsWithNumber;
+	return findCells(board, hasValue(targetNumber)).map(({ row, col }) => ({ row, col }));
 }
 
 /**
