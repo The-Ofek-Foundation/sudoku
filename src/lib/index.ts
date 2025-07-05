@@ -6,6 +6,12 @@ export {
 	getTechniqueDifficulty,
 	difficultyToCategory,
 	getHint,
+	generate,
+	generateWithClues,
+	generateWithDifficulty,
+	generateByCategory,
+	evaluatePuzzleDifficulty,
+	solvePuzzleWithHints,
 } from './sudoku/index';
 export type {
 	Square,
@@ -37,7 +43,15 @@ export type CellData = {
 
 export type GamePhase = 'configuring' | 'solving' | 'manual' | 'competition';
 export type InputMode = 'normal' | 'note'; // Keep 'note' as UI term while using 'candidates' internally
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty =
+	| 'trivial'
+	| 'basic'
+	| 'intermediate'
+	| 'tough'
+	| 'diabolical'
+	| 'extreme'
+	| 'master'
+	| 'grandmaster';
 
 // Export game phase management
 export { gamePhaseManager } from './gamePhases/index.js';

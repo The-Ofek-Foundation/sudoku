@@ -7,7 +7,7 @@
 	export let inputMode: InputMode;
 	export let errorCell: { row: number; col: number } | null = null;
 	export let colorKuMode: boolean = false;
-	export let difficulty: Difficulty = 'easy';
+	export let difficulty: Difficulty = 'basic';
 	export let gridSize: string = '600px';
 	export let highlightedNumber: number | null = null;
 	export let selectedCellCandidates: Set<number> = new Set(); // Renamed from selectedCellNotes for consistency
@@ -112,9 +112,14 @@
 					bind:value={difficulty}
 					class="select-compact difficulty-compact"
 				>
-					<option value="easy">Easy</option>
-					<option value="medium">Medium</option>
-					<option value="hard">Hard</option>
+					<option value="trivial">Trivial</option>
+					<option value="basic">Basic</option>
+					<option value="intermediate">Intermediate</option>
+					<option value="tough">Tough</option>
+					<option value="diabolical">Diabolical</option>
+					<option value="extreme">Extreme</option>
+					<option value="master">Master</option>
+					<option value="grandmaster">Grandmaster</option>
 				</select>
 			</div>
 			<div class="control-group start-group">

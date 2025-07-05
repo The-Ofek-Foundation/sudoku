@@ -105,10 +105,15 @@
 
 	// Helper function to get technique difficulty category
 	function getTechniqueDifficultyCategory():
-		| 'beginner'
-		| 'easy'
-		| 'medium'
-		| 'hard' {
+		| 'error'
+		| 'trivial'
+		| 'basic'
+		| 'intermediate'
+		| 'tough'
+		| 'diabolical'
+		| 'extreme'
+		| 'master'
+		| 'grandmaster' {
 		return difficultyToCategory(hint.difficulty);
 	}
 
@@ -1007,24 +1012,50 @@
 		letter-spacing: 0.5px;
 	}
 
-	.difficulty-beginner {
+	.difficulty-error {
+		background-color: var(--color-danger);
+		color: var(--color-white);
+	}
+
+	.difficulty-trivial {
+		background-color: var(--color-success-lighter);
+		color: var(--color-dark);
+	}
+
+	.difficulty-basic {
 		background-color: var(--color-success);
 		color: var(--color-white);
 	}
 
-	.difficulty-easy {
+	.difficulty-intermediate {
 		background-color: var(--color-info);
 		color: var(--color-white);
 	}
 
-	.difficulty-medium {
+	.difficulty-tough {
 		background-color: var(--color-warning);
 		color: var(--color-white);
 	}
 
-	.difficulty-hard {
+	.difficulty-diabolical {
+		background-color: var(--color-warning-darker);
+		color: var(--color-white);
+	}
+
+	.difficulty-extreme {
 		background-color: var(--color-danger);
 		color: var(--color-white);
+	}
+
+	.difficulty-master {
+		background-color: var(--color-danger-darker);
+		color: var(--color-white);
+	}
+
+	.difficulty-grandmaster {
+		background-color: var(--color-dark);
+		color: var(--color-white);
+		border: 2px solid var(--color-warning);
 	}
 
 	.close-button {

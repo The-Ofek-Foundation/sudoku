@@ -1,4 +1,4 @@
-import type { GamePhase } from '$lib/index.js';
+import type { GamePhase, Difficulty } from '$lib/index.js';
 
 export interface KeyboardHandlerContext {
 	// Game state
@@ -7,7 +7,7 @@ export interface KeyboardHandlerContext {
 	cyclingNumber: number | null;
 	colorKuMode: boolean;
 	inputMode: 'normal' | 'note';
-	difficulty: 'easy' | 'medium' | 'hard';
+	difficulty: Difficulty;
 	gameMode: 'solving' | 'manual' | 'competition';
 	showingHint: boolean;
 	board: any[][]; // Board type would need to be imported properly
@@ -33,7 +33,7 @@ export interface KeyboardHandlerContext {
 	setCyclingNumber: (num: number | null) => void;
 	setColorKuMode: (mode: boolean) => void;
 	setInputMode: (mode: 'normal' | 'note') => void;
-	setDifficulty: (diff: 'easy' | 'medium' | 'hard') => void;
+	setDifficulty: (diff: Difficulty) => void;
 	setSelectedCell: (cell: { row: number; col: number } | null) => void;
 
 	// External references
@@ -150,8 +150,17 @@ function handleConfiguringPhaseShortcuts(
 			context.generatePuzzle();
 			break;
 		case 'd':
-			// Cycle through difficulties: easy -> medium -> hard -> easy
-			const difficulties = ['easy', 'medium', 'hard'] as const;
+			// Cycle through difficulties: trivial -> basic -> intermediate -> tough -> diabolical -> extreme -> master -> grandmaster -> trivial
+			const difficulties: Difficulty[] = [
+				'trivial',
+				'basic',
+				'intermediate',
+				'tough',
+				'diabolical',
+				'extreme',
+				'master',
+				'grandmaster',
+			];
 			const currentIndex = difficulties.indexOf(context.difficulty);
 			const nextIndex = (currentIndex + 1) % difficulties.length;
 			context.setDifficulty(difficulties[nextIndex]);

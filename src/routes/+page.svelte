@@ -10,6 +10,7 @@
 	import { replaceState } from '$app/navigation';
 	import {
 		sudoku,
+		generateByCategory,
 		type CellData,
 		type GamePhase,
 		type InputMode,
@@ -64,7 +65,7 @@
 	let errorCell: { row: number; col: number } | null = null;
 	let highlightedNumber: number | null = null;
 	let colorKuMode: boolean = false;
-	let difficulty: Difficulty = 'easy';
+	let difficulty: Difficulty = 'basic';
 	let gameMode: 'solving' | 'manual' | 'competition' = 'solving'; // Track selected game mode
 	let isGameCompleted: boolean = false;
 	let gridSize = '600px'; // Default size
@@ -416,8 +417,11 @@
 		// Clear the current board
 		board = createEmptyBoard();
 
-		// Generate a new puzzle using the sudoku library
-		const generatedPuzzle = sudoku.generate(difficulty) as {
+		// Generate a new puzzle using the new difficulty-based generator
+		const generationResult = generateByCategory(difficulty, {
+			maxAttempts: 30,
+		});
+		const generatedPuzzle = generationResult.puzzle as {
 			[key: string]: string;
 		};
 
