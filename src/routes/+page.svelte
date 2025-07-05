@@ -432,9 +432,7 @@
 		board = createEmptyBoard();
 
 		// Generate a new puzzle using the new difficulty-based generator
-		const generationResult = generateByCategory(difficulty, {
-			maxAttempts: 30,
-		});
+		const generationResult = generateByCategory(difficulty);
 		const generatedPuzzle = generationResult.puzzle as {
 			[key: string]: string;
 		};

@@ -69,13 +69,16 @@
 			if (highlight.candidateEliminations) {
 				for (const elimination of highlight.candidateEliminations) {
 					if (elimination.square === square) {
-						eliminations.push(...elimination.digits);
+						eliminations.push(
+							...elimination.digits.filter((digit) =>
+								board[row][col].candidates.has(parseInt(digit)),
+							),
+						);
 					}
 				}
 			}
 		}
 
-		// Remove duplicates
 		return [...new Set(eliminations)];
 	}
 
