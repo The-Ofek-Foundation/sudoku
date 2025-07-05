@@ -532,14 +532,25 @@
 
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
+		.actions-row {
+			gap: 0.5rem; /* 8px */
+			padding: 0.25rem; /* 4px */
+		}
+
+		.actions-row :global(.btn) {
+			padding: 0.5rem; /* 8px */
+		}
+
 		.number-button {
-			padding: var(--space-sm) 0;
-			font-size: var(--font-size-2xl);
+			padding: 0.5rem 0; /* 8px */
+			font-size: 2rem; /* 32px */
+			line-height: 1.2;
+			background-color: transparent;
 		}
 
 		.palette-color-circle {
-			width: 24px;
-			height: 24px;
+			width: 1.75rem; /* 28px */
+			height: 1.75rem; /* 28px */
 		}
 	}
 </style>

@@ -299,11 +299,7 @@
 		}
 
 		// Additional check for competition mode: if puzzle is complete, end the game and show share modal
-		if (
-			gamePhase === 'competition' &&
-			isPuzzleComplete() &&
-			!isGameCompleted
-		) {
+		if (gamePhase === 'competition' && isPuzzleComplete() && !isGameCompleted) {
 			isGameCompleted = true;
 			isTimerRunning = false;
 			if (!timerFinalTime && timerStartTime) {
