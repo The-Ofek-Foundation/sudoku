@@ -291,7 +291,25 @@
 
 		if (result.gameCompleted) {
 			isGameCompleted = true;
-			showCongratulationsModal = true;
+			if (gamePhase === 'competition') {
+				showShareModalForCompletion();
+			} else {
+				showCongratulationsModal = true;
+			}
+		}
+
+		// Additional check for competition mode: if puzzle is complete, end the game and show share modal
+		if (
+			gamePhase === 'competition' &&
+			isPuzzleComplete() &&
+			!isGameCompleted
+		) {
+			isGameCompleted = true;
+			isTimerRunning = false;
+			if (!timerFinalTime && timerStartTime) {
+				timerFinalTime = Date.now() - timerStartTime;
+			}
+			showShareModalForCompletion();
 		}
 	}
 
