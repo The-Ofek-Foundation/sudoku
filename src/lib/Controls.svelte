@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../app.css';
 	import { colorKuColors } from './colors.js';
 	import Timer from './Timer.svelte';
 	import type { GamePhase, InputMode, Difficulty } from '$lib';
@@ -404,7 +405,7 @@
 	}
 	/* Number button customizations */
 	.number-button {
-		padding: var(--space-md) 0;
+		padding: var(--space-lg) 0;
 		font-size: var(--font-size-3xl);
 		font-weight: var(--font-weight-thin);
 		font-family: inherit;
@@ -533,24 +534,24 @@
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
 		.actions-row {
-			gap: 0.5rem; /* 8px */
-			padding: 0.25rem; /* 4px */
+			gap: var(--space-lg);
+			padding: var(--space-sm);
 		}
 
 		.actions-row :global(.btn) {
-			padding: 0.5rem; /* 8px */
+			padding: var(--space-lg);
 		}
 
 		.number-button {
-			padding: 0.5rem 0; /* 8px */
-			font-size: 2rem; /* 32px */
+			padding: var(--space-md) 0;
+			font-size: 2rem;
 			line-height: 1.2;
 			background-color: transparent;
 		}
 
 		.palette-color-circle {
-			width: 1.75rem; /* 28px */
-			height: 1.75rem; /* 28px */
+			width: 1.75rem;
+			height: 1.75rem;
 		}
 	}
 </style>

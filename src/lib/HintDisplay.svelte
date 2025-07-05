@@ -1004,7 +1004,7 @@
 	}
 
 	.difficulty-badge {
-		padding: var(--space-xs) var(--space-md);
+		padding: var(--space-sm) var(--space-lg); /* Increased padding for less squished look */
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-xs);
 		font-weight: var(--font-weight-bold);
@@ -1155,7 +1155,7 @@
 
 	.stage-indicators {
 		display: flex;
-		gap: var(--space-md);
+		gap: 4px; /* Further reduced gap for less spacing */
 		align-items: center;
 	}
 
@@ -1174,29 +1174,29 @@
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
 		.hint-display {
-			margin-top: var(--space-md);
+			margin-top: 0.75rem;
 		}
 
 		.hint-header {
-			padding: var(--space-lg) var(--space-xl);
+			padding: 0.75rem 1rem;
 		}
 
 		.technique-name {
-			font-size: var(--font-size-lg);
+			font-size: 1rem;
 		}
 
 		.hint-body {
-			padding: var(--space-xl);
+			padding: 1rem;
 		}
 
 		.hint-actions {
-			padding: var(--space-lg) var(--space-xl);
+			padding: 0.75rem 1rem;
 			flex-wrap: wrap;
 		}
 
 		.action-type {
-			min-width: 120px;
-			font-size: var(--font-size-sm);
+			min-width: 100px;
+			font-size: 0.875rem;
 		}
 	}
 
