@@ -5,6 +5,7 @@ This is a Sudoku web application built with [Svelte](https://svelte.dev) and [Vi
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - [Node.js](https://nodejs.org/) (v18 or later recommended)
 - [npm](https://www.npmjs.com/) (comes with Node.js)
 - [Firebase CLI](https://firebase.google.com/docs/cli) (for deployment)
@@ -16,12 +17,14 @@ npm install -g firebase-tools
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd sudoku
    ```
 
 2. Initialize submodules (required for Sudoku logic):
+
    ```bash
    git submodule update --init --recursive
    ```
@@ -56,11 +59,13 @@ This will generate the static assets in the `build` directory, ready for deploym
 This project is configured to deploy to Firebase Hosting.
 
 1. Login to Firebase:
+
    ```bash
    firebase login
    ```
 
 2. Deploy to Firebase:
+
    ```bash
    npm run deploy
    ```
@@ -79,4 +84,3 @@ npm run test
 
 - **Lint**: `npm run lint`
 - **Format**: `npm run format`
-
