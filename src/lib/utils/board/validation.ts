@@ -1,6 +1,6 @@
 // Board validation utilities
 
-import { sudoku } from '$lib';
+import { sudoku } from '../../index.js';
 import type { CellData } from '$lib';
 import type { BoardValidationResult, SimpleValidationResult } from './types.js';
 import { boardToString } from './conversion.js';
