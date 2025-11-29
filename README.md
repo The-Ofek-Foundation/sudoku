@@ -1,38 +1,82 @@
-# sv
+# Sudoku
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This is a Sudoku web application built with [Svelte](https://svelte.dev) and [Vite](https://vitejs.dev), configured for deployment on [Firebase Hosting](https://firebase.google.com/docs/hosting).
 
-## Creating a project
+## Prerequisites
 
-If you're seeing this, you've probably already done this step. Congrats!
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v18 or later recommended)
+- [npm](https://www.npmjs.com/) (comes with Node.js)
+- [Firebase CLI](https://firebase.google.com/docs/cli) (for deployment)
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm install -g firebase-tools
 ```
 
-## Developing
+## Installation
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd sudoku
+   ```
+
+2. Initialize submodules (required for Sudoku logic):
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+## Development
+
+To start the development server with hot reload:
 
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
+
+The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
 
 ## Building
 
-To create a production version of your app:
+To create a production build:
 
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+This will generate the static assets in the `build` directory, ready for deployment.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Deployment
+
+This project is configured to deploy to Firebase Hosting.
+
+1. Login to Firebase:
+   ```bash
+   firebase login
+   ```
+
+2. Deploy to Firebase:
+   ```bash
+   npm run deploy
+   ```
+
+   This command runs the format check, builds the project, and then deploys it to Firebase.
+
+## Testing
+
+To run the test suite (using Vitest):
+
+```bash
+npm run test
+```
+
+## Linting & Formatting
+
+- **Lint**: `npm run lint`
+- **Format**: `npm run format`
+
