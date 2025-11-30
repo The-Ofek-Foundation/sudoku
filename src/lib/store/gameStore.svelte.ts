@@ -25,6 +25,11 @@ import {
 	createShareableUrl,
 } from '$lib/share.js';
 
+import {
+	initSudoku,
+	generateByCategoryFast,
+} from '../sudoku/fast-sudoku/adapter.js';
+
 export class GameStore {
 	board = $state<CellData[][]>(createEmptyBoard());
 	selectedCell = $state<{ row: number; col: number } | null>(null);
@@ -57,8 +62,10 @@ export class GameStore {
 	solution: { [key: string]: string } | null = null;
 	cyclingNumber: number | null = null;
 
+	private initPromise: Promise<void> | null = null;
+
 	constructor() {
-		// No auto-initialization
+		this.init();
 	}
 
 	get numberCounts() {
@@ -67,12 +74,33 @@ export class GameStore {
 
 	// --- Actions ---
 
+	async init() {
+		if (!this.initPromise) {
+			console.log('Initializing Sudoku WASM...');
+			this.initPromise = initSudoku();
+		}
+		try {
+			await this.initPromise;
+			console.log('Sudoku WASM initialized');
+		} catch (e) {
+			console.error('Failed to initialize Sudoku WASM:', e);
+			this.initPromise = null; // Retry on next call
+		}
+	}
+
 	generatePuzzle() {
 		this.board = createEmptyBoard();
-		const generationResult = generateByCategory(this.difficulty);
-		const generatedPuzzle = generationResult.puzzle as {
-			[key: string]: string;
-		};
+
+		// Use the fast generator
+		console.time('generateByCategoryFast');
+		const generationResult = generateByCategoryFast(this.difficulty);
+		console.timeEnd('generateByCategoryFast');
+
+		const generatedPuzzle = generationResult.puzzle;
+		console.log(generatedPuzzle);
+		console.log('Difficulty Score:', generationResult.actualDifficulty);
+
+		// check difficulty
 
 		const rows = 'ABCDEFGHI';
 		const cols = '123456789';
@@ -90,6 +118,30 @@ export class GameStore {
 		this.isGameCompleted = false;
 		this.errorMessage = null;
 	}
+
+	// generatePuzzle() {
+	// 	this.board = createEmptyBoard();
+	// 	const generationResult = generateByCategory(this.difficulty);
+	// 	const generatedPuzzle = generationResult.puzzle as {
+	// 		[key: string]: string;
+	// 	};
+
+	// 	const rows = 'ABCDEFGHI';
+	// 	const cols = '123456789';
+
+	// 	for (let r = 0; r < 9; r++) {
+	// 		for (let c = 0; c < 9; c++) {
+	// 			const square = rows[r] + cols[c];
+	// 			if (generatedPuzzle[square]) {
+	// 				this.board[r][c].value = parseInt(generatedPuzzle[square]);
+	// 				this.board[r][c].isInitial = true;
+	// 			}
+	// 		}
+	// 	}
+	// 	this.errorCell = null;
+	// 	this.isGameCompleted = false;
+	// 	this.errorMessage = null;
+	// }
 
 	startGame() {
 		const validation = validateBoardSimple(this.board);

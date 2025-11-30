@@ -18,7 +18,11 @@
 		createKeyboardHandler,
 		type KeyboardHandlerContext,
 	} from '$lib/utils/keyboardHandler.js';
-	import { getChallengeFromUrl, type PuzzleShare } from '$lib/share.js';
+	import {
+		generateShareText,
+		getChallengeFromUrl,
+		type PuzzleShare,
+	} from '$lib/share.js';
 	import { gameStore } from '$lib/store/gameStore.svelte';
 
 	// Sudoku solver from https://github.com/einaregilsson/sudoku.js

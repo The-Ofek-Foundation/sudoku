@@ -8,7 +8,23 @@ Before you begin, ensure you have the following installed:
 
 - [Node.js](https://nodejs.org/) (v18 or later recommended)
 - [npm](https://www.npmjs.com/) (comes with Node.js)
+- [Rust](https://www.rust-lang.org/tools/install) (required for building WASM package)
+- [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) (for building the WASM package)
 - [Firebase CLI](https://firebase.google.com/docs/cli) (for deployment)
+
+To install Rust:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+To install wasm-pack:
+
+```bash
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+```
+
+To install Firebase CLI:
 
 ```bash
 npm install -g firebase-tools
@@ -29,7 +45,13 @@ npm install -g firebase-tools
    git submodule update --init --recursive
    ```
 
-3. Install dependencies:
+3. Build the WASM package:
+
+   ```bash
+   npm run build:wasm
+   ```
+
+4. Install dependencies:
    ```bash
    npm install
    ```

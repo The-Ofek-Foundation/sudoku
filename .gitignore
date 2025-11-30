@@ -23,3 +23,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 .firebase
+
+# WASM build artifacts
+src/lib/sudoku/fast-sudoku/pkg/
+src/lib/sudoku/fast-sudoku/target/
